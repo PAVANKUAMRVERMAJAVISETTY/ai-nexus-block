@@ -1,0 +1,53 @@
+export const routes = {
+  public: {
+    home: '/',
+    projects: '/projects',
+    project: (slug: string) => `/projects/${slug}`,
+    tools: '/tools',
+    tool: (slug: string) => `/tools/${slug}`,
+    knowledge: '/knowledge',
+    knowledgeArticle: (slug: string) => `/knowledge/${slug}`,
+    roadmaps: '/roadmaps',
+    roadmap: (slug: string) => `/roadmaps/${slug}`,
+    resources: '/resources',
+    journey: '/journey',
+    myBlock: '/my-block',
+  },
+  auth: {
+    login: '/login',
+    forgotPassword: '/forgot-password',
+    authCallback: '/auth-callback',
+  },
+  workspace: {
+    dashboard: '/dashboard',
+    assistant: '/assistant',
+    debug: '/debug',
+    notes: '/notes',
+    conversations: '/conversations',
+    decisions: '/decisions',
+  },
+  admin: {
+    dashboard: '/admin/dashboard',
+    profile: '/admin/profile',
+    tools: '/admin/tools',
+    projects: '/admin/projects',
+    knowledge: '/admin/knowledge',
+    roadmaps: '/admin/roadmaps',
+    resources: '/admin/resources',
+    journey: '/admin/journey',
+    decisions: '/admin/decisions',
+    media: '/admin/media',
+    aiSettings: '/admin/ai-settings',
+    users: '/admin/users',
+    analytics: '/admin/analytics',
+    settings: '/admin/settings',
+  },
+  api: {
+    ai: '/api/ai',
+    search: '/api/search',
+    recommendations: '/api/recommendations',
+    health: '/api/health',
+  },
+} as const;
+
+export type Routes = typeof routes;
