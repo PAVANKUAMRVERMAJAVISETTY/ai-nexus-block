@@ -6,27 +6,39 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import { useAuth } from '@/features/auth/hooks/use-auth';
+import { toast } from 'sonner';
 
 export default function ForgotPasswordPage() {
+  const { resetPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.trim()) {
+      toast.error('Please enter your email address.');
+      return;
+    }
+
     setLoading(true);
-    // TODO: Implement Supabase Auth password reset in a later stage.
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await resetPassword(email);
       setSent(true);
-    }, 1000);
+      toast.success('Password reset link sent to your email.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send reset link.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <Card className="border-border/40">
+    <Card className="border-border/40 w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle className="text-2xl">Reset password</CardTitle>
+        <CardTitle className="text-2xl font-bold">Reset password</CardTitle>
         <CardDescription>
           {sent
             ? 'Check your email for a password reset link.'
@@ -37,7 +49,7 @@ export default function ForgotPasswordPage() {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email address</Label>
               <Input
                 id="email"
                 type="email"
@@ -51,7 +63,14 @@ export default function ForgotPasswordPage() {
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Sending...' : 'Send reset link'}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                'Send reset link'
+              )}
             </Button>
             <Link
               href="/login"

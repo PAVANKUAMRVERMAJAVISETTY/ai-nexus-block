@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,49 +11,47 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { toast } from 'sonner';
 import { Loader2, ArrowLeft } from 'lucide-react';
-import { authService } from '@/features/auth/services/auth-service';
 
-export default function LoginPage() {
+export default function SignUpPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const nextUrl = searchParams.get('next');
-  const { signIn } = useAuth();
+  const { signUp } = useAuth();
 
+  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) {
-      toast.error('Please enter your email and password.');
+
+    if (!displayName.trim() || !email.trim() || !password.trim()) {
+      toast.error('Please fill in all required fields.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match.');
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters.');
       return;
     }
 
     setLoading(true);
     try {
-      await signIn({ email, password });
-      toast.success('Signed in successfully!');
+      await signUp({
+        displayName,
+        email,
+        password,
+      });
 
-      if (nextUrl) {
-        router.push(nextUrl);
-        return;
-      }
-
-      // Read role from user profile to decide default destination
-      const { supabaseClient } = await import('@/lib/supabase/client');
-      const { data: userRes } = await supabaseClient.auth.getUser();
-      if (userRes.user?.id) {
-        const profile = await authService.getProfile(userRes.user.id);
-        if (profile?.role === 'super_admin') {
-          router.push('/admin/dashboard');
-          return;
-        }
-      }
-
+      toast.success('Account created successfully! Welcome to AI Nexus Block.');
       router.push('/assistant');
     } catch (err: any) {
-      toast.error(err.message || 'Invalid email or password.');
+      toast.error(err.message || 'Failed to create account. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -62,11 +60,26 @@ export default function LoginPage() {
   return (
     <Card className="border-border/40 w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
-        <CardDescription>Enter your credentials to access the workspace.</CardDescription>
+        <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
+        <CardDescription>
+          Sign up to access the AI assistant and developer sandbox.
+        </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="displayName">Display Name</Label>
+            <Input
+              id="displayName"
+              type="text"
+              placeholder="Jane Doe"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              required
+              autoComplete="name"
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="email">Email address</Label>
             <Input
@@ -79,13 +92,9 @@ export default function LoginPage() {
               autoComplete="email"
             />
           </div>
+
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
-              <Link href="/forgot-password" className="text-xs text-primary hover:underline">
-                Forgot password?
-              </Link>
-            </div>
+            <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               type="password"
@@ -93,7 +102,20 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              autoComplete="current-password"
+              autoComplete="new-password"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              autoComplete="new-password"
             />
           </div>
         </CardContent>
@@ -103,19 +125,19 @@ export default function LoginPage() {
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Signing in...
+                Creating account...
               </>
             ) : (
-              'Sign In'
+              'Sign Up'
             )}
           </Button>
 
           <Separator />
 
           <div className="flex items-center justify-between w-full text-xs text-muted-foreground">
-            <span>Don&apos;t have an account?</span>
-            <Link href="/signup" className="text-primary hover:underline font-medium">
-              Create an account
+            <span>Already have an account?</span>
+            <Link href="/login" className="text-primary hover:underline font-medium">
+              Sign In
             </Link>
           </div>
 

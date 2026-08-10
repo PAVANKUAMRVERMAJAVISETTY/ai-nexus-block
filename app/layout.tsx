@@ -21,6 +21,9 @@ export const metadata: Metadata = {
   },
 };
 
+import { AuthProvider } from '@/features/auth/context/auth-context';
+import { Toaster } from 'sonner';
+
 export default function RootLayout({
   children,
 }: {
@@ -28,7 +31,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${inter.className} antialiased`}>{children}</body>
+      <body className={`${inter.className} antialiased`}>
+        <AuthProvider>
+          {children}
+          <Toaster position="top-right" theme="dark" richColors />
+        </AuthProvider>
+      </body>
     </html>
   );
 }
+

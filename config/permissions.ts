@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'editor' | 'user';
+export type UserRole = 'super_admin' | 'admin' | 'editor' | 'user';
 
 export interface RolePermission {
   canManageContent: boolean;
@@ -10,6 +10,14 @@ export interface RolePermission {
 }
 
 export const rolePermissions: Record<UserRole, RolePermission> = {
+  super_admin: {
+    canManageContent: true,
+    canManageMedia: true,
+    canManageUsers: true,
+    canManageAISettings: true,
+    canViewAnalytics: true,
+    canAccessAdmin: true,
+  },
   admin: {
     canManageContent: true,
     canManageMedia: true,
@@ -35,6 +43,7 @@ export const rolePermissions: Record<UserRole, RolePermission> = {
     canAccessAdmin: false,
   },
 };
+
 
 export const adminRoutes = [
   '/admin',

@@ -1,4 +1,4 @@
-import { LayoutDashboard, User, Wrench, FolderGit2, BookOpen, Map, Link2, Compass, GitBranch, ImageIcon, Bot, Users, BarChart3, Settings } from 'lucide-react';
+import { LayoutDashboard, User, Wrench, FolderGit2, BookOpen, Map, Link2, Compass, GitBranch, ImageIcon, Bot, Users, BarChart3, Settings, FileText, Bookmark, MessageSquare } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface NavItem {
@@ -20,9 +20,12 @@ export const publicNav: NavItem[] = [
 export const workspaceNav: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Assistant', href: '/assistant', icon: Bot },
-  { label: 'Debug', href: '/debug', icon: GitBranch },
+  { label: 'Conversations', href: '/conversations', icon: MessageSquare },
+  { label: 'My Profile', href: '/profile', icon: User },
+  { label: 'My Files', href: '/files', icon: FileText },
+  { label: 'Research', href: '/research', icon: Bookmark },
   { label: 'Notes', href: '/notes', icon: BookOpen },
-  { label: 'Conversations', href: '/conversations', icon: User },
+  { label: 'Debug', href: '/debug', icon: GitBranch },
   { label: 'Decisions', href: '/decisions', icon: Compass },
 ];
 

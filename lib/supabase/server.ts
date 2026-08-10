@@ -1,22 +1,36 @@
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export async function createSupabaseServerClient() {
   const cookieStore = cookies();
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+  const key =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    'placeholder-anon-key';
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+    url,
+    key,
     {
       cookies: {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options: Record<string, unknown>) {
-          cookieStore.set({ name, value, ...options });
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch {
+            // Handled by middleware session update
+          }
         },
-        remove(name: string, options: Record<string, unknown>) {
-          cookieStore.set({ name, value: '', ...options });
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: '', ...options });
+          } catch {
+            // Handled by middleware session update
+          }
         },
       },
     }

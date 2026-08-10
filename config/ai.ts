@@ -8,7 +8,7 @@ export interface AIProviderConfig {
 }
 
 export const aiProviders: AIProviderConfig[] = [
-  { id: 'gemini', label: 'Google Gemini', envKey: 'GEMINI_API_KEY', defaultModel: 'gemini-1.5-pro' },
+  { id: 'gemini', label: 'Google Gemini', envKey: 'GEMINI_API_KEY', defaultModel: 'gemini-3.6-flash' },
   { id: 'openai', label: 'OpenAI', envKey: 'OPENAI_API_KEY', defaultModel: 'gpt-4o' },
   { id: 'claude', label: 'Anthropic Claude', envKey: 'ANTHROPIC_API_KEY', defaultModel: 'claude-3-5-sonnet' },
 ];
