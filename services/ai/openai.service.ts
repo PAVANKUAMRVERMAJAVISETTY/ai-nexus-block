@@ -1,6 +1,7 @@
 import type { AIProvider } from '@/lib/ai/provider';
 import type { AIRequest, AIResponse } from '@/types/ai';
-import { systemPrompts } from '@/lib/ai/prompts';
+import { getSystemPrompt } from '@/lib/ai/prompts';
+import { aiProviders } from '@/config/ai';
 
 export class OpenAIService implements AIProvider {
   id = 'openai' as const;
@@ -13,7 +14,7 @@ export class OpenAIService implements AIProvider {
       return {
         content:
           "⚠️ **OpenAI API Key Missing**: Please set `OPENAI_API_KEY` in your server `.env.local` file.\n\n" +
-          "**Mode Context**: " + (systemPrompts[request.mode as keyof typeof systemPrompts] || systemPrompts.general) + "\n\n" +
+          "**Mode Context**: " + getSystemPrompt(request.mode) + "\n\n" +
           "**Received Query**: " + request.message,
         conversation_id: conversationId,
         tokens_used: 0,
@@ -21,8 +22,11 @@ export class OpenAIService implements AIProvider {
       };
     }
 
-    const systemInstruction =
-      systemPrompts[request.mode as keyof typeof systemPrompts] || systemPrompts.general;
+    const systemInstruction = request.systemOverride || getSystemPrompt(request.mode);
+    const model =
+      process.env.OPENAI_MODEL ||
+      aiProviders.find((p) => p.id === 'openai')?.defaultModel ||
+      'gpt-4o';
 
     try {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -32,13 +36,13 @@ export class OpenAIService implements AIProvider {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model,
           messages: [
             { role: 'system', content: systemInstruction },
             { role: 'user', content: request.message },
           ],
-          max_tokens: 2048,
-          temperature: 0.7,
+          max_tokens: request.maxTokens ?? 2048,
+          temperature: request.temperature ?? 0.7,
         }),
       });
 

@@ -1,15 +1,10 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { resolveSupabaseEnv } from './env';
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
-  const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    'placeholder-anon-key';
-
+  const { url: supabaseUrl, anonKey: supabaseKey } = resolveSupabaseEnv();
 
   const supabase = createServerClient(
     supabaseUrl,
@@ -61,7 +56,9 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // 2. Protection for Workspace routes (/dashboard, /assistant, /profile, /files, /research, /debug, /notes, /conversations, /decisions)
+  // 2. Protection for Workspace routes.
+  // Anything reachable only by an authenticated user MUST be listed here —
+  // a route that is missing from this array is publicly reachable.
   const workspaceRoutes = [
     '/dashboard',
     '/assistant',
@@ -72,6 +69,13 @@ export async function updateSession(request: NextRequest) {
     '/notes',
     '/conversations',
     '/decisions',
+    '/ide',
+    // Setting a password requires a session — from a normal sign-in, or from
+    // the recovery link that /auth-callback has just exchanged. Enforcing it
+    // here means an unauthenticated request is refused with a redirect before
+    // the page renders, rather than relying on the page's own check arriving
+    // partway through a streamed response.
+    '/update-password',
   ];
 
   const isWorkspaceRoute = workspaceRoutes.some(

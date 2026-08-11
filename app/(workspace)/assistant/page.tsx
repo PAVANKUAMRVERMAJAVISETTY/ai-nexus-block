@@ -6,10 +6,10 @@ import { PageContainer, PageHeader } from '@/components/common';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Bot, Send, Wrench, Code2, GitCompare, Map, BookOpen, Loader2, Sparkles, User as UserIcon, Plus } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
-import { aiProviders, defaultAIProvider, type AIProviderId } from '@/config/ai';
+import { defaultAIProvider, type AIProviderId } from '@/config/ai';
+import { assistantIdentity } from '@/config/ide';
 import { toast } from 'sonner';
 
 const modes = [
@@ -162,27 +162,8 @@ export default function AssistantPage() {
       />
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-4">
-        {/* Left Column: Mode & Provider Selectors */}
+        {/* Left Column: Mode Selector */}
         <div className="lg:col-span-1 space-y-6">
-          {/* AI Provider selector */}
-          <Card className="border-border/40 p-4 space-y-2 bg-card">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              AI Model Provider
-            </label>
-            <Select value={selectedProvider} onValueChange={(val) => setSelectedProvider(val as AIProviderId)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select Provider" />
-              </SelectTrigger>
-              <SelectContent>
-                {aiProviders.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.label} ({p.defaultModel})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Card>
-
           {/* Mode Selector */}
           <div className="space-y-2">
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
@@ -217,9 +198,9 @@ export default function AssistantPage() {
                   <Bot className="h-4 w-4" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-bold">AI Nexus Assistant</CardTitle>
+                  <CardTitle className="text-sm font-bold">{assistantIdentity.name}</CardTitle>
                   <p className="text-[11px] text-muted-foreground">
-                    Provider: <span className="font-semibold text-primary capitalize">{selectedProvider}</span> | Mode: <span className="font-semibold capitalize">{selectedMode.replace('_', ' ')}</span>
+                    Mode: <span className="font-semibold capitalize">{selectedMode.replace('_', ' ')}</span>
                   </p>
                 </div>
               </div>
@@ -311,7 +292,7 @@ export default function AssistantPage() {
                       </div>
                       <div className="rounded-lg bg-muted/70 px-4 py-3 text-xs text-muted-foreground flex items-center gap-2 border border-border/40">
                         <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                        Analyzing with {selectedProvider.toUpperCase()}...
+                        {assistantIdentity.shortName} is thinking...
                       </div>
                     </div>
                   )}
@@ -326,7 +307,7 @@ export default function AssistantPage() {
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={`Ask ${selectedProvider.toUpperCase()} in ${selectedMode.replace('_', ' ')} mode...`}
+                  placeholder={`Ask ${assistantIdentity.name} in ${selectedMode.replace('_', ' ')} mode...`}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                   disabled={loading || loadingInitial}
                 />

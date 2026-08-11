@@ -34,3 +34,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Monaco editor assets, generated from node_modules by scripts/copy-monaco.mjs
+/public/monaco-editor

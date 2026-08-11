@@ -1,6 +1,7 @@
 import type { AIProvider } from '@/lib/ai/provider';
 import type { AIRequest, AIResponse } from '@/types/ai';
-import { systemPrompts } from '@/lib/ai/prompts';
+import { getSystemPrompt } from '@/lib/ai/prompts';
+import { aiProviders } from '@/config/ai';
 
 export class ClaudeService implements AIProvider {
   id = 'claude' as const;
@@ -13,7 +14,7 @@ export class ClaudeService implements AIProvider {
       return {
         content:
           "⚠️ **Anthropic Claude API Key Missing**: Please set `ANTHROPIC_API_KEY` in your server `.env.local` file.\n\n" +
-          "**Mode Context**: " + (systemPrompts[request.mode as keyof typeof systemPrompts] || systemPrompts.general) + "\n\n" +
+          "**Mode Context**: " + getSystemPrompt(request.mode) + "\n\n" +
           "**Received Query**: " + request.message,
         conversation_id: conversationId,
         tokens_used: 0,
@@ -21,8 +22,11 @@ export class ClaudeService implements AIProvider {
       };
     }
 
-    const systemInstruction =
-      systemPrompts[request.mode as keyof typeof systemPrompts] || systemPrompts.general;
+    const systemInstruction = request.systemOverride || getSystemPrompt(request.mode);
+    const model =
+      process.env.ANTHROPIC_MODEL ||
+      aiProviders.find((p) => p.id === 'claude')?.defaultModel ||
+      'claude-sonnet-4-5';
 
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -33,10 +37,10 @@ export class ClaudeService implements AIProvider {
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20240620',
+          model,
           system: systemInstruction,
           messages: [{ role: 'user', content: request.message }],
-          max_tokens: 2048,
+          max_tokens: request.maxTokens ?? 2048,
         }),
       });
 

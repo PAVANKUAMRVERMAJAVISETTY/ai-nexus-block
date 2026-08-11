@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, GraduationCap, Briefcase, Target, Github, Globe, Linkedin, Loader2, Save, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { User, GraduationCap, Briefcase, Target, Github, Globe, Linkedin, Loader2, Save, Sparkles, ShieldCheck, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Profile } from '@/types/database';
 
@@ -138,7 +139,7 @@ export default function ProfilePage() {
       ) : (
         <form onSubmit={handleSave} className="mt-6 space-y-6">
           <Tabs defaultValue="basic" className="w-full space-y-6">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto p-1 gap-1">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 h-auto p-1 gap-1">
               <TabsTrigger value="basic" className="text-xs py-2 flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5" />
                 Basic
@@ -158,6 +159,10 @@ export default function ProfilePage() {
               <TabsTrigger value="developer" className="text-xs py-2 flex items-center gap-1.5">
                 <Globe className="h-3.5 w-3.5" />
                 Links
+              </TabsTrigger>
+              <TabsTrigger value="security" className="text-xs py-2 flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Security
               </TabsTrigger>
             </TabsList>
 
@@ -436,6 +441,50 @@ export default function ProfilePage() {
                       placeholder="https://linkedin.com/in/username"
                       className="text-xs"
                     />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* TAB 6: SECURITY */}
+            <TabsContent value="security">
+              <Card className="border-border/40 bg-card">
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
+                    Account Security
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Credentials are handled by Supabase Auth, separately from the profile fields
+                    on the other tabs.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start justify-between gap-4 rounded-md border border-border/40 bg-muted/30 p-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground">Password</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        You will be asked for your current password before setting a new one.
+                      </p>
+                    </div>
+                    {/* A link, not a button: this form's submit handler saves
+                        profile fields and must not be triggered here. */}
+                    <Link
+                      href="/update-password"
+                      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border/60 px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                    >
+                      <KeyRound className="h-3.5 w-3.5" />
+                      Change password
+                    </Link>
+                  </div>
+
+                  <div className="rounded-md border border-border/40 bg-muted/30 p-3">
+                    <p className="text-xs font-medium text-foreground">Role</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      Your role is{' '}
+                      <code className="font-mono text-foreground">{profile?.role ?? 'user'}</code>.
+                      Roles are assigned by an administrator and cannot be changed from this page.
+                    </p>
                   </div>
                 </CardContent>
               </Card>

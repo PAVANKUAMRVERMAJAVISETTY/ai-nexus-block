@@ -268,7 +268,7 @@ export default function ResearchPage() {
                       <UserCheck className="h-3 w-3" />
                       User Opinion / Review
                     </p>
-                    <p className="text-foreground text-[11px] italic leading-relaxed">"{item.opinion}"</p>
+                    <p className="text-foreground text-[11px] italic leading-relaxed">&ldquo;{item.opinion}&rdquo;</p>
                   </div>
                 )}
 

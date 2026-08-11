@@ -12,7 +12,13 @@ export function validateMessage(message: string): { valid: boolean; error?: stri
   return { valid: true };
 }
 
-export function rateLimited(_userId: string): boolean {
-  // TODO: Implement rate limiting in a later stage.
-  return false;
-}
+/*
+ * Rate limiting used to live here as `rateLimited()`, which returned `false`
+ * unconditionally — a function that answered "no, this user is not rate
+ * limited" no matter how many requests they made. It was never wired up, but
+ * leaving it in a module called `safety` invited a future caller to import it
+ * and believe the request had been checked.
+ *
+ * The real implementation is `hit()` in `@/lib/security/rate-limit`, which is
+ * what `/api/ai` and the IDE routes actually use.
+ */

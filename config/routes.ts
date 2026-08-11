@@ -25,6 +25,13 @@ export const routes = {
     notes: '/notes',
     conversations: '/conversations',
     decisions: '/decisions',
+    profile: '/profile',
+    files: '/files',
+    research: '/research',
+  },
+  ide: {
+    root: '/ide',
+    project: (projectId: string) => `/ide/${projectId}`,
   },
   admin: {
     dashboard: '/admin/dashboard',
@@ -40,13 +47,27 @@ export const routes = {
     aiSettings: '/admin/ai-settings',
     users: '/admin/users',
     analytics: '/admin/analytics',
-    settings: '/admin/settings',
   },
   api: {
     ai: '/api/ai',
     search: '/api/search',
     recommendations: '/api/recommendations',
     health: '/api/health',
+    ide: {
+      projects: '/api/ide/projects',
+      project: (projectId: string) => `/api/ide/projects/${projectId}`,
+      files: (projectId: string) => `/api/ide/projects/${projectId}/files`,
+      index: (projectId: string) => `/api/ide/projects/${projectId}/index`,
+      runs: '/api/ide/runs',
+      run: (runId: string) => `/api/ide/runs/${runId}`,
+      assistant: '/api/ide/assistant',
+      actions: '/api/ide/actions',
+      action: (actionId: string) => `/api/ide/actions/${actionId}`,
+      agentDevices: '/api/ide/agent/devices',
+      agentPair: '/api/ide/agent/pair',
+      agentPoll: '/api/ide/agent/poll',
+      agentReport: '/api/ide/agent/report',
+    },
   },
 } as const;
 

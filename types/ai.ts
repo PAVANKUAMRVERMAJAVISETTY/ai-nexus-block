@@ -38,6 +38,13 @@ export interface AIRequest {
   mode: AIMode;
   conversation_id?: UUID;
   context?: Record<string, unknown>;
+  /**
+   * Replaces the mode's default system prompt. The Nexus IDE uses this to send
+   * a project-aware instruction instead of the generic workspace prompt.
+   */
+  systemOverride?: string;
+  maxTokens?: number;
+  temperature?: number;
 }
 
 export interface AIResponse {

@@ -1,6 +1,6 @@
 import type { AIProvider } from '@/lib/ai/provider';
 import type { AIRequest, AIResponse } from '@/types/ai';
-import { systemPrompts } from '@/lib/ai/prompts';
+import { getSystemPrompt } from '@/lib/ai/prompts';
 import { aiProviders } from '@/config/ai';
 
 const defaultGeminiModel = aiProviders.find((p) => p.id === 'gemini')?.defaultModel || 'gemini-3.6-flash';
@@ -16,7 +16,7 @@ export class GeminiService implements AIProvider {
       return {
         content:
           "⚠️ **Google Gemini API Key Missing**: Please set `GEMINI_API_KEY` in your server `.env.local` file.\n\n" +
-          "**Mode Context**: " + (systemPrompts[request.mode as keyof typeof systemPrompts] || systemPrompts.general) + "\n\n" +
+          "**Mode Context**: " + getSystemPrompt(request.mode) + "\n\n" +
           "**Received Query**: " + request.message,
         conversation_id: conversationId,
         tokens_used: 0,
@@ -24,8 +24,7 @@ export class GeminiService implements AIProvider {
       };
     }
 
-    const systemInstruction =
-      systemPrompts[request.mode as keyof typeof systemPrompts] || systemPrompts.general;
+    const systemInstruction = request.systemOverride || getSystemPrompt(request.mode);
 
     const model = process.env.GEMINI_MODEL || defaultGeminiModel;
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -42,8 +41,8 @@ export class GeminiService implements AIProvider {
             },
           ],
           generationConfig: {
-            maxOutputTokens: 2048,
-            temperature: 0.7,
+            maxOutputTokens: request.maxTokens ?? 2048,
+            temperature: request.temperature ?? 0.7,
           },
         }),
       });

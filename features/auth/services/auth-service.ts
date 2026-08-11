@@ -85,7 +85,10 @@ export const authService = {
    * Request password reset link
    */
   async resetPassword(email: string) {
-    const redirectTo = `${window.location.origin}/login`;
+    // Must go through /auth-callback: that route exchanges the one-time code
+    // for a session. Pointing the email straight at a page would land the user
+    // there with no session and no way to set a new password.
+    const redirectTo = `${window.location.origin}/auth-callback?next=/update-password`;
     const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
       redirectTo,
     });
@@ -93,6 +96,33 @@ export const authService = {
     if (error) {
       throw new Error(error.message);
     }
+  },
+
+  /**
+   * Set a new password for the signed-in user.
+   *
+   * Used by both the in-app change form and the recovery flow — in both cases
+   * Supabase requires an active session, and it does the hashing. The plaintext
+   * never reaches our own server or database.
+   */
+  async updatePassword(password: string) {
+    const { error } = await supabaseClient.auth.updateUser({ password });
+    if (error) {
+      throw new Error(error.message);
+    }
+  },
+
+  /**
+   * Confirm the current password by re-authenticating.
+   *
+   * `updateUser` alone will change the password of whoever holds the session,
+   * so an unattended logged-in browser is enough to take over the account.
+   * Verifying the old password first closes that gap. It signs in as the same
+   * user, so a success leaves the existing session intact.
+   */
+  async verifyPassword(email: string, password: string): Promise<boolean> {
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    return !error;
   },
 
   /**

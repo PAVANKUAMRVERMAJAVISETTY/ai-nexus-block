@@ -23,6 +23,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // /auth-callback sends people here with a reason when an email link has
+  // expired or was already used. Without this the redirect looks like nothing
+  // happened at all.
+  const callbackError = searchParams.get('error');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
@@ -67,6 +72,11 @@ export default function LoginPage() {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          {callbackError && (
+            <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
+              {callbackError}
+            </p>
+          )}
           <div className="space-y-2">
             <Label htmlFor="email">Email address</Label>
             <Input

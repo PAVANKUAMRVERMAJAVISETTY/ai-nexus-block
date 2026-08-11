@@ -28,7 +28,8 @@ app/api/ai/route.ts    → API endpoint
 lib/ai/provider.ts     → Provider resolution
 lib/ai/prompts.ts      → System prompts per mode
 lib/ai/context.ts      → Context building (future RAG)
-lib/ai/safety.ts       → Input validation and rate limiting
+lib/ai/safety.ts       → Input validation helpers (not currently imported)
+lib/security/rate-limit.ts → Rate limiting, used by /api/ai and the IDE routes
 services/ai/*.ts       → Provider implementations
 ```
 

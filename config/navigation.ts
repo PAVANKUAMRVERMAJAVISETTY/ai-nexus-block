@@ -1,4 +1,4 @@
-import { LayoutDashboard, User, Wrench, FolderGit2, BookOpen, Map, Link2, Compass, GitBranch, ImageIcon, Bot, Users, BarChart3, Settings, FileText, Bookmark, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, User, Wrench, FolderGit2, BookOpen, Map, Link2, Compass, GitBranch, ImageIcon, Bot, Users, BarChart3, FileText, Bookmark, MessageSquare, Code2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface NavItem {
@@ -19,6 +19,7 @@ export const publicNav: NavItem[] = [
 
 export const workspaceNav: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Nexus IDE', href: '/ide', icon: Code2 },
   { label: 'Assistant', href: '/assistant', icon: Bot },
   { label: 'Conversations', href: '/conversations', icon: MessageSquare },
   { label: 'My Profile', href: '/profile', icon: User },
@@ -43,5 +44,6 @@ export const adminNav: NavItem[] = [
   { label: 'AI Settings', href: '/admin/ai-settings', icon: Bot },
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-  { label: 'Settings', href: '/admin/settings', icon: Settings },
+  // NOTE: '/admin/settings' was listed here but the page does not exist — the
+  // link 404'd. Re-add it when the page ships.
 ];

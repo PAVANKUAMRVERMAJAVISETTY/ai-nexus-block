@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { getProvider } from '@/lib/ai/provider';
+import { generate, NoProviderConfiguredError } from '@/lib/ai/nexus-assistant';
+import { getSystemPrompt } from '@/lib/ai/prompts';
+import { RATE_LIMITS, hit, rateLimitHeaders } from '@/lib/security/rate-limit';
 import type { AIProviderId, AIMode } from '@/types/common';
 
 export async function POST(request: Request) {
@@ -16,6 +18,16 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'Unauthenticated request. Please sign in to access the AI assistant.' },
         { status: 401 }
+      );
+    }
+
+    // Model calls cost money. Limit per user before any work is done, so one
+    // account cannot exhaust the shared AI budget.
+    const limit = hit(`ai:${user.id}`, RATE_LIMITS.ai);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: `Too many requests. Try again in ${limit.retryAfterSeconds}s.` },
+        { status: 429, headers: rateLimitHeaders(limit) }
       );
     }
 
@@ -96,13 +108,27 @@ export async function POST(request: Request) {
       });
     }
 
-    // 5. Generate AI response via Server Gateway
-    const aiProvider = getProvider(provider as AIProviderId);
-    const aiResult = await aiProvider.generate({
-      message: profileContext ? `${profileContext}User Prompt: ${message.trim()}` : message.trim(),
-      mode: mode as AIMode,
-      conversation_id: activeConversationId,
-    });
+    // 5. Generate the response as the Nexus AI Assistant.
+    //    The backend is chosen from whichever providers are actually
+    //    configured, so a missing key degrades to another vendor instead of
+    //    surfacing a provider-branded error to the user.
+    let aiResult;
+    try {
+      aiResult = await generate({
+        message: profileContext
+          ? `${profileContext}User Prompt: ${message.trim()}`
+          : message.trim(),
+        mode: mode as AIMode,
+        system: getSystemPrompt(mode),
+        conversationId: activeConversationId,
+        preferredProvider: provider as AIProviderId,
+      });
+    } catch (error) {
+      if (error instanceof NoProviderConfiguredError) {
+        return NextResponse.json({ error: error.message }, { status: 503 });
+      }
+      throw error;
+    }
 
     // 6. Persist Assistant Response to database if conversation exists
     if (activeConversationId) {
@@ -110,7 +136,7 @@ export async function POST(request: Request) {
         conversation_id: activeConversationId,
         role: 'assistant',
         content: aiResult.content,
-        tokens_used: aiResult.tokens_used || 0,
+        tokens_used: aiResult.tokensUsed || 0,
       });
 
       // Update updated_at timestamp on active conversation
@@ -120,11 +146,13 @@ export async function POST(request: Request) {
         .eq('id', activeConversationId);
     }
 
+    // The backend that answered is deliberately NOT returned here — the
+    // assistant is presented as "Nexus AI Assistant" everywhere in the product.
+    // Provider attribution is available on admin surfaces only.
     return NextResponse.json({
       content: aiResult.content,
-      conversation_id: activeConversationId || aiResult.conversation_id,
-      provider: aiResult.provider,
-      tokens_used: aiResult.tokens_used,
+      conversation_id: activeConversationId || aiResult.conversationId,
+      tokens_used: aiResult.tokensUsed,
     });
   } catch (error: any) {
     console.error('AI API Route Error:', error);

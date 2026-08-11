@@ -3,6 +3,7 @@ import { Users, ShieldAlert, ShieldCheck, Mail, Calendar, CheckCircle2 } from 'l
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { CreateDemoUserDialog } from '@/features/admin/components/create-demo-user-dialog';
 import type { Profile } from '@/types/database';
 
 export const revalidate = 0;
@@ -38,7 +39,7 @@ export default async function AdminUsersPage() {
       <div className="mt-8">
         <Card className="border-border/40">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <CardTitle className="text-xl font-bold flex items-center gap-2">
                   <Users className="h-5 w-5 text-primary" />
@@ -48,6 +49,9 @@ export default async function AdminUsersPage() {
                   List of all registered profiles stored in public.profiles
                 </CardDescription>
               </div>
+
+              {/* Creates an ordinary role=user account for demos/interviews. */}
+              <CreateDemoUserDialog />
             </div>
           </CardHeader>
 

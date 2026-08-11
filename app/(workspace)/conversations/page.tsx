@@ -91,9 +91,13 @@ export default function ConversationsPage() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, sending]);
 
-  // Fetch list of conversations on mount
+  // Fetch list of conversations on mount.
+  // `fetchConversations` is intentionally omitted: it is redefined on every
+  // render, so listing it as a dependency would refetch in a loop. The effect
+  // is meant to run exactly once.
   useEffect(() => {
     fetchConversations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch single conversation messages when selectedId changes
