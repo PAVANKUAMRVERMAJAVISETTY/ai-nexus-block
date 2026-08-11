@@ -25,8 +25,14 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+# `.env*.local` alone leaves .env.production and .env.development exposed —
+# exactly the files a deployment is most likely to hold real keys in.
+# Everything matching .env* is ignored, then .env.example is re-included
+# because it is the placeholder template and is meant to be committed.
 .env
 .env*.local
+.env.*
+!.env.example
 
 # vercel
 .vercel
