@@ -18,7 +18,7 @@ export const aiProviders: AIProviderConfig[] = [
     id: 'gemini',
     label: 'Google Gemini',
     envKey: 'GEMINI_API_KEY',
-    defaultModel: 'gemini-2.5-flash',
+    defaultModel: 'gemini-3.6-flash',
     modelEnvKey: 'GEMINI_MODEL',
   },
   {
