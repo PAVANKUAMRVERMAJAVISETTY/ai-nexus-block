@@ -33,13 +33,16 @@ export class GeminiService implements AIProvider {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+                body: JSON.stringify({
           contents: [
             {
               role: 'user',
-              parts: [{ text: `${systemInstruction}\n\nUser Question (${request.mode}): ${request.message}` }],
+              parts: [{ text: `User Question (${request.mode}): ${request.message}` }],
             },
           ],
+          systemInstruction: {
+            parts: [{ text: systemInstruction }]
+          },
           generationConfig: {
             maxOutputTokens: request.maxTokens ?? 2048,
             temperature: request.temperature ?? 0.7,
