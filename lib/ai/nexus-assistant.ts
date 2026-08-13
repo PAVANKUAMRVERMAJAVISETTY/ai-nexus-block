@@ -23,6 +23,33 @@ import {
 } from '@/config/ai';
 import { assistantIdentity } from '@/config/ide';
 
+const PROVIDER_TIMEOUT_MS = 15000;
+
+function withProviderTimeout<T>(
+  operation: Promise<T>,
+  providerId: AIProviderId
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(
+        new Error(
+          `Provider ${providerId} timed out after ${PROVIDER_TIMEOUT_MS}ms`
+        )
+      );
+    }, PROVIDER_TIMEOUT_MS);
+
+    operation.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
 export class NoProviderConfiguredError extends Error {
   constructor() {
     // Deliberately provider-agnostic: the user should not have to know which
@@ -137,7 +164,10 @@ export async function generate(options: NexusGenerateOptions): Promise<NexusGene
         temperature: options.temperature,
       };
 
-      const result: AIResponse = await provider.generate(request);
+      const result: AIResponse = await withProviderTimeout(
+        provider.generate(request),
+        providerId
+      );
 
       return {
         content: sanitizeAssistantOutput(result.content),

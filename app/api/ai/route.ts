@@ -4,6 +4,9 @@ import { generate, NoProviderConfiguredError } from '@/lib/ai/nexus-assistant';
 import { getSystemPrompt } from '@/lib/ai/prompts';
 import { RATE_LIMITS, hit, rateLimitHeaders } from '@/lib/security/rate-limit';
 import type { AIProviderId, AIMode } from '@/types/common';
+import { needsWebSearch } from '@/services/web-search/intent';
+import { webSearch } from '@/services/web-search';
+import { formatWebSearchContext } from '@/services/web-search/context';
 
 export async function POST(request: Request) {
   try {
@@ -114,12 +117,34 @@ export async function POST(request: Request) {
     //    The backend is chosen from whichever providers are actually
     //    configured, so a missing key degrades to another vendor instead of
     //    surfacing a provider-branded error to the user.
+    let webSearchContext = '';
+
+    if (needsWebSearch(message.trim(), mode as AIMode)) {
+      try {
+        const searchResponse = await webSearch({
+          query: message.trim(),
+          maxResults: 5,
+        });
+
+        webSearchContext = formatWebSearchContext(searchResponse.results);
+      } catch (searchError) {
+        console.error('[ai-route] Web search failed:', searchError);
+      }
+    }
     let aiResult;
     try {
       aiResult = await generate({
-        message: profileContext
-          ? `${profileContext}User Prompt: ${message.trim()}`
-          : message.trim(),
+        message: [
+          profileContext,
+          webSearchContext
+            ? `[WEB SEARCH CONTEXT]
+${webSearchContext}
+[/WEB SEARCH CONTEXT]`
+            : '',
+          `User Prompt: ${message.trim()}`,
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
         mode: mode as AIMode,
         system: getSystemPrompt(mode),
         conversationId: activeConversationId,

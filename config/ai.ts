@@ -44,17 +44,17 @@ export const aiProviders: AIProviderConfig[] = [
   },
 ];
 
-export const defaultAIProvider: AIProviderId = 'ollama';
+export const defaultAIProvider: AIProviderId = 'gemini';
 
 /**
  * Order the Nexus AI Assistant tries backends in when no admin preference
  * applies, or when the preferred backend errors.
  */
 export const assistantFallbackOrder: AIProviderId[] = [
-  'ollama',
   'gemini',
   'openai',
   'claude',
+  'ollama',
 ];
 
 export const aiConfig = {
