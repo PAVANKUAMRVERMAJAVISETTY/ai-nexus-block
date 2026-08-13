@@ -54,16 +54,23 @@ export const assistantFallbackOrder: AIProviderId[] = [
 ];
 
 export const configuredProviderIds = (): AIProviderId[] => {
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const hasCustomOllamaHost = !!process.env.OLLAMA_HOST;
+
   return aiProviders
     .filter((provider) => {
-      if (provider.id === 'ollama') return true;
+      if (provider.id === 'ollama') {
+        return isDevelopment || hasCustomOllamaHost;
+      }
       return !!process.env[provider.envKey];
     })
     .map((p) => p.id);
 };
 
 export const isProviderConfigured = (id: AIProviderId): boolean => {
-  if (id === 'ollama') return true;
+  if (id === 'ollama') {
+    return process.env.NODE_ENV !== 'production' || !!process.env.OLLAMA_HOST;
+  }
   const config = aiProviders.find((p) => p.id === id);
   return config ? !!process.env[config.envKey] : false;
 };
