@@ -2,25 +2,26 @@ import type { AIProvider } from '@/lib/ai/provider';
 import type { AIRequest, AIResponse } from '@/types/ai';
 import { getSystemPrompt } from '@/lib/ai/prompts';
 
-export class OpenAIService implements AIProvider {
-  id = 'openai' as const;
+export class GroqService implements AIProvider {
+  id = 'groq' as const;
 
   async generate(request: AIRequest): Promise<AIResponse> {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     const conversationId =
       request.conversation_id || crypto.randomUUID();
 
     if (!apiKey) {
-      throw new Error('OpenAI API key is not configured');
+      throw new Error('Groq API key is not configured');
     }
 
-    const model = process.env.OPENAI_MODEL || 'gpt-4o';
+    const model =
+      process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
     const systemInstruction =
       request.systemOverride || getSystemPrompt(request.mode);
 
     const res = await fetch(
-      'https://api.openai.com/v1/chat/completions',
+      'https://api.groq.com/openai/v1/chat/completions',
       {
         method: 'POST',
         signal: request.signal,
@@ -51,21 +52,19 @@ export class OpenAIService implements AIProvider {
     if (!res.ok) {
       const errorDetails = await res.text();
       throw new Error(
-        `OpenAI API error (HTTP ${res.status}): ${errorDetails}`
+        `Groq API error (HTTP ${res.status}): ${errorDetails}`
       );
     }
 
     const data = await res.json();
 
-    const text =
-      data.choices?.[0]?.message?.content ||
-      'I could not generate a response for this request.';
-
     return {
-      content: text,
+      content:
+        data.choices?.[0]?.message?.content ||
+        'I could not generate a response for this request.',
       conversation_id: conversationId,
       tokens_used: data.usage?.total_tokens || 0,
-      provider: 'openai',
+      provider: 'groq',
     };
   }
 }

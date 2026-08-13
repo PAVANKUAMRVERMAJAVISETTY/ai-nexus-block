@@ -9,7 +9,7 @@ export class OllamaService implements AIProvider {
   id = 'ollama' as const;
 
   async generate(request: AIRequest): Promise<AIResponse> {
-    const host = process.env.OLLAMA_HOST || 'http://127.0.0.1:11434';
+    const host = process.env.OLLAMA_HOST || process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
     const conversationId = request.conversation_id || (crypto.randomUUID() as any);
     const model = process.env.OLLAMA_MODEL || defaultOllamaModel;
     
@@ -19,6 +19,7 @@ export class OllamaService implements AIProvider {
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
+      signal: request.signal,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: model,

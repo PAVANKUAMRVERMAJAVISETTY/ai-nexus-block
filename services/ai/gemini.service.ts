@@ -3,86 +3,85 @@ import type { AIRequest, AIResponse } from '@/types/ai';
 import { getSystemPrompt } from '@/lib/ai/prompts';
 import { aiProviders } from '@/config/ai';
 
-const defaultGeminiModel = aiProviders.find((p) => p.id === 'gemini')?.defaultModel || 'gemini-3.6-flash';
+const defaultGeminiModel =
+  aiProviders.find((provider) => provider.id === 'gemini')?.defaultModel ||
+  'gemini-3.6-flash';
 
 export class GeminiService implements AIProvider {
   id = 'gemini' as const;
 
   async generate(request: AIRequest): Promise<AIResponse> {
     const apiKey = process.env.GEMINI_API_KEY;
-    const conversationId = request.conversation_id || (crypto.randomUUID() as any);
+    const conversationId =
+      request.conversation_id || crypto.randomUUID();
 
     if (!apiKey) {
-      return {
-        content:
-          "⚠️ **Google Gemini API Key Missing**: Please set `GEMINI_API_KEY` in your server `.env.local` file.\n\n" +
-          "**Mode Context**: " + getSystemPrompt(request.mode) + "\n\n" +
-          "**Received Query**: " + request.message,
-        conversation_id: conversationId,
-        tokens_used: 0,
-        provider: 'gemini',
-      };
+      throw new Error('Gemini API key is not configured');
     }
 
-    const systemInstruction = request.systemOverride || getSystemPrompt(request.mode);
+    const systemInstruction =
+      request.systemOverride || getSystemPrompt(request.mode);
 
-    const model = process.env.GEMINI_MODEL || defaultGeminiModel;
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const model =
+      process.env.GEMINI_MODEL || defaultGeminiModel;
 
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-          contents: [
+    const endpoint =
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      signal: request.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [
             {
-              role: 'user',
-              parts: [{ text: `User Question (${request.mode}): ${request.message}` }],
+              text: systemInstruction,
             },
           ],
-          systemInstruction: {
-            parts: [{ text: systemInstruction }]
+        },
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: `User Question (${request.mode}): ${request.message}`,
+              },
+            ],
           },
-          generationConfig: {
-            maxOutputTokens: request.maxTokens ?? 2048,
-          },
-        }),
-      });
+        ],
+        generationConfig: {
+          maxOutputTokens: request.maxTokens ?? 2048,
+          ...(request.temperature !== undefined
+            ? { temperature: request.temperature }
+            : {}),
+        },
+      }),
+    });
 
-      if (!res.ok) {
-        const errorDetails = await res.text();
-        if (res.status === 403 || res.status === 401) {
-          return {
-            content:
-              `⚠️ **Google Gemini API Key Error (HTTP ${res.status})**: Your \`GEMINI_API_KEY\` in \`.env.local\` was rejected by Google API.\n\n` +
-              `**Reason**: ${errorDetails.includes('leaked') ? 'This API key was flagged as leaked or revoked by Google.' : 'Invalid or expired API key.'}\n\n` +
-              `**Action Required**: Please generate a fresh API key at [Google AI Studio](https://aistudio.google.com/) and update \`GEMINI_API_KEY\` in your server \`.env.local\` file.`,
-            conversation_id: conversationId,
-            tokens_used: 0,
-            provider: 'gemini',
-          };
-        }
-        if (res.status === 404) {
-          throw new Error(
-            `Gemini API Model Incompatibility (HTTP 404): Model '${model}' was not found or is not supported for generateContent. Details: ${errorDetails}`
-          );
-        }
-        throw new Error(`Gemini API returned status ${res.status}: ${errorDetails}`);
-      }
-
-      const data = await res.json();
-      const text =
-        data.candidates?.[0]?.content?.parts?.[0]?.text ||
-        'I could not generate a response for this request.';
-
-      return {
-        content: text,
-        conversation_id: conversationId,
-        tokens_used: data.usageMetadata?.totalTokenCount || 120,
-        provider: 'gemini',
-      };
-    } catch (err: any) {
-      throw new Error(`Gemini Provider Error: ${err.message}`);
+    if (!res.ok) {
+      const errorDetails = await res.text();
+      throw new Error(
+        `Gemini API error (HTTP ${res.status}): ${errorDetails}`
+      );
     }
+
+    const data = await res.json();
+
+    const text =
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      'I could not generate a response for this request.';
+
+    return {
+      content: text,
+      conversation_id: conversationId,
+      tokens_used:
+        data.usageMetadata?.totalTokenCount || 0,
+      provider: 'gemini',
+    };
   }
 }
+

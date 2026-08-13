@@ -20,25 +20,27 @@ import {
   configuredProviderIds,
   isProviderConfigured,
   resolveModel,
-} from '@/config/ai';
+providerTimeouts } from '@/config/ai';
 import { assistantIdentity } from '@/config/ide';
 
-const PROVIDER_TIMEOUT_MS = 15000;
-
 function withProviderTimeout<T>(
-  operation: Promise<T>,
+  operation: (signal: AbortSignal) => Promise<T>,
   providerId: AIProviderId
 ): Promise<T> {
-  return new Promise((resolve, reject) => {
+  const timeoutMs = providerTimeouts[providerId] || 15000;
+  const controller = new AbortController();
+
+  return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
+      controller.abort();
       reject(
         new Error(
-          `Provider ${providerId} timed out after ${PROVIDER_TIMEOUT_MS}ms`
+          `Provider ${providerId} timed out after ${timeoutMs}ms`
         )
       );
-    }, PROVIDER_TIMEOUT_MS);
+    }, timeoutMs);
 
-    operation.then(
+    operation(controller.signal).then(
       (value) => {
         clearTimeout(timer);
         resolve(value);
@@ -164,10 +166,7 @@ export async function generate(options: NexusGenerateOptions): Promise<NexusGene
         temperature: options.temperature,
       };
 
-      const result: AIResponse = await withProviderTimeout(
-        provider.generate(request),
-        providerId
-      );
+      const result: AIResponse = await withProviderTimeout((signal) => provider.generate({ ...request, signal }), providerId);
 
       return {
         content: sanitizeAssistantOutput(result.content),
@@ -188,3 +187,6 @@ export async function generate(options: NexusGenerateOptions): Promise<NexusGene
       (process.env.NODE_ENV === 'development' ? ` (${errors.join('; ')})` : '')
   );
 }
+
+
+

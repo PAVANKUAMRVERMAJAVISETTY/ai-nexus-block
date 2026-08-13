@@ -34,6 +34,7 @@ export interface AIRecommendationItem {
 }
 
 export interface AIRequest {
+  signal?: AbortSignal;
   message: string;
   mode: AIMode;
   conversation_id?: UUID;
@@ -53,3 +54,4 @@ export interface AIResponse {
   tokens_used: number;
   provider: AIProviderId;
 }
+
