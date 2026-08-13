@@ -49,6 +49,17 @@ export class GeminiService implements AIProvider {
 
       if (!res.ok) {
         const errorDetails = await res.text();
+        if (res.status === 403 || res.status === 401) {
+          return {
+            content:
+              `⚠️ **Google Gemini API Key Error (HTTP ${res.status})**: Your \`GEMINI_API_KEY\` in \`.env.local\` was rejected by Google API.\n\n` +
+              `**Reason**: ${errorDetails.includes('leaked') ? 'This API key was flagged as leaked or revoked by Google.' : 'Invalid or expired API key.'}\n\n` +
+              `**Action Required**: Please generate a fresh API key at [Google AI Studio](https://aistudio.google.com/) and update \`GEMINI_API_KEY\` in your server \`.env.local\` file.`,
+            conversation_id: conversationId,
+            tokens_used: 0,
+            provider: 'gemini',
+          };
+        }
         if (res.status === 404) {
           throw new Error(
             `Gemini API Model Incompatibility (HTTP 404): Model '${model}' was not found or is not supported for generateContent. Details: ${errorDetails}`

@@ -3,6 +3,7 @@ import type { AIRequest, AIResponse } from '@/types/ai';
 import { GeminiService } from '@/services/ai/gemini.service';
 import { OpenAIService } from '@/services/ai/openai.service';
 import { ClaudeService } from '@/services/ai/claude.service';
+import { OllamaService } from '@/services/ai/ollama.service';
 
 export interface AIProvider {
   id: AIProviderId;
@@ -13,6 +14,7 @@ const providers: Record<AIProviderId, AIProvider> = {
   gemini: new GeminiService(),
   openai: new OpenAIService(),
   claude: new ClaudeService(),
+  ollama: new OllamaService(),
 };
 
 export function getProvider(id: AIProviderId = 'gemini'): AIProvider {

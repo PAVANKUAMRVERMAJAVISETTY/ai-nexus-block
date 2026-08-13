@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { toast } from 'sonner';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, Sparkles } from 'lucide-react';
 import { authService } from '@/features/auth/services/auth-service';
 
 export default function LoginPage() {
@@ -28,14 +28,10 @@ export default function LoginPage() {
   // happened at all.
   const callbackError = searchParams.get('error');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim() || !password.trim()) {
-      toast.error('Please enter your email and password.');
-      return;
-    }
-
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setLoading(true);
+
     try {
       await signIn({ email, password });
       toast.success('Signed in successfully!');
@@ -45,20 +41,27 @@ export default function LoginPage() {
         return;
       }
 
-      // Read role from user profile to decide default destination
-      const { supabaseClient } = await import('@/lib/supabase/client');
-      const { data: userRes } = await supabaseClient.auth.getUser();
-      if (userRes.user?.id) {
-        const profile = await authService.getProfile(userRes.user.id);
-        if (profile?.role === 'super_admin') {
-          router.push('/admin/dashboard');
-          return;
-        }
+      router.push('/assistant');
+    } catch (err: any) {
+      toast.error(err.message || 'Unable to sign in. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleGuestSignIn = async () => {
+    setLoading(true);
+    try {
+      await signIn({ email: 'guest@ainexus.demo', password: 'GuestDemo2026!' });
+      toast.success('Signed in as Demo Guest user!');
+
+      if (nextUrl) {
+        router.push(nextUrl);
+        return;
       }
 
       router.push('/assistant');
     } catch (err: any) {
-      toast.error(err.message || 'Invalid email or password.');
+      toast.error(err.message || 'Demo account not found. Please create guest@ainexus.demo in Supabase.');
     } finally {
       setLoading(false);
     }
@@ -118,6 +121,17 @@ export default function LoginPage() {
             ) : (
               'Sign In'
             )}
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-primary/30 hover:bg-primary/10 flex items-center justify-center gap-2"
+            disabled={loading}
+            onClick={handleGuestSignIn}
+          >
+            <Sparkles className="h-4 w-4 text-amber-400" />
+            Explore Demo Guest Account
           </Button>
 
           <Separator />

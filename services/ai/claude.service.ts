@@ -46,6 +46,16 @@ export class ClaudeService implements AIProvider {
 
       if (!res.ok) {
         const errorDetails = await res.text();
+        if (res.status === 403 || res.status === 401) {
+          return {
+            content:
+              `⚠️ **Anthropic Claude API Key Error (HTTP ${res.status})**: Your \`ANTHROPIC_API_KEY\` in \`.env.local\` was rejected by Anthropic API.\n\n` +
+              `**Action Required**: Please update \`ANTHROPIC_API_KEY\` in your server \`.env.local\` file with a valid Anthropic API key.`,
+            conversation_id: conversationId,
+            tokens_used: 0,
+            provider: 'claude',
+          };
+        }
         throw new Error(`Anthropic Claude API returned status ${res.status}: ${errorDetails}`);
       }
 

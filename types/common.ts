@@ -49,7 +49,7 @@ export interface PaginatedResponse<T> {
   hasMore: boolean;
 }
 
-export type AIProviderId = 'gemini' | 'openai' | 'claude';
+export type AIProviderId = 'gemini' | 'openai' | 'claude' | 'ollama';
 
 export type AIMode =
   | 'recommend_stack'

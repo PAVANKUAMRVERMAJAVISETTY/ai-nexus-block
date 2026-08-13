@@ -1,4 +1,4 @@
-export type AIProviderId = 'gemini' | 'openai' | 'claude';
+export type AIProviderId = 'gemini' | 'openai' | 'claude' | 'ollama';
 
 export interface AIProviderConfig {
   id: AIProviderId;
@@ -31,23 +31,31 @@ export const aiProviders: AIProviderConfig[] = [
   {
     id: 'claude',
     label: 'Anthropic Claude',
-    // Previously 'claude-3-5-sonnet' here and 'claude-3-5-sonnet-20240620'
-    // hardcoded in the service — that model was retired in October 2025 and
-    // now returns 404. claude-opus-5 is the current model ID.
     envKey: 'ANTHROPIC_API_KEY',
     defaultModel: 'claude-opus-5',
     modelEnvKey: 'ANTHROPIC_MODEL',
   },
+  {
+    id: 'ollama',
+    label: 'Ollama',
+    envKey: 'OLLAMA_BASE_URL',
+    defaultModel: 'qwen3:8b',
+    modelEnvKey: 'OLLAMA_MODEL',
+  },
 ];
 
-export const defaultAIProvider: AIProviderId = 'gemini';
+export const defaultAIProvider: AIProviderId = 'ollama';
 
 /**
  * Order the Nexus AI Assistant tries backends in when no admin preference
- * applies, or when the preferred backend errors. Unconfigured entries are
- * skipped, so this list is safe to extend as new providers are added.
+ * applies, or when the preferred backend errors.
  */
-export const assistantFallbackOrder: AIProviderId[] = ['gemini', 'openai', 'claude'];
+export const assistantFallbackOrder: AIProviderId[] = [
+  'ollama',
+  'gemini',
+  'openai',
+  'claude',
+];
 
 export const aiConfig = {
   maxTokens: 4096,
@@ -56,9 +64,11 @@ export const aiConfig = {
   safetyThreshold: 0.8,
 } as const;
 
-/** Providers whose API key is actually present on this server. */
+/** Providers whose required configuration is actually present on this server. */
 export function configuredProviderIds(): AIProviderId[] {
-  return aiProviders.filter((p) => Boolean(process.env[p.envKey])).map((p) => p.id);
+  return aiProviders
+    .filter((p) => Boolean(process.env[p.envKey]))
+    .map((p) => p.id);
 }
 
 export function isProviderConfigured(id: AIProviderId): boolean {

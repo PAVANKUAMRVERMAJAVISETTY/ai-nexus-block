@@ -66,7 +66,9 @@ export async function POST(request: Request) {
         .select('id')
         .single();
 
-      if (!convError && newConv) {
+      if (convError) {
+        console.error('[ai-route] Failed to create conversation in Supabase:', convError.message);
+      } else if (newConv) {
         activeConversationId = newConv.id;
       }
     }

@@ -48,6 +48,16 @@ export class OpenAIService implements AIProvider {
 
       if (!res.ok) {
         const errorDetails = await res.text();
+        if (res.status === 403 || res.status === 401) {
+          return {
+            content:
+              `⚠️ **OpenAI API Key Error (HTTP ${res.status})**: Your \`OPENAI_API_KEY\` in \`.env.local\` was rejected by OpenAI API.\n\n` +
+              `**Action Required**: Please update \`OPENAI_API_KEY\` in your server \`.env.local\` file with a valid OpenAI API key.`,
+            conversation_id: conversationId,
+            tokens_used: 0,
+            provider: 'openai',
+          };
+        }
         throw new Error(`OpenAI API returned status ${res.status}: ${errorDetails}`);
       }
 
