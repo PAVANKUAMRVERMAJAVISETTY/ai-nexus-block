@@ -6,11 +6,35 @@ import { PageContainer, PageHeader } from '@/components/common';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Bot, Send, Wrench, Code2, GitCompare, Map, BookOpen, Loader2, Sparkles, User as UserIcon, Plus } from 'lucide-react';
+import {
+  Bot,
+  Send,
+  Wrench,
+  Code2,
+  GitCompare,
+  Map,
+  BookOpen,
+  Loader2,
+  Sparkles,
+  User as UserIcon,
+  Plus,
+  Paperclip,
+  Mic,
+  Square,
+  X,
+  Volume2,
+  VolumeX,
+  FileText,
+  Image as ImageIcon,
+  Music as MusicIcon,
+} from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { defaultAIProvider, type AIProviderId } from '@/config/ai';
 import { assistantIdentity } from '@/config/ide';
 import { toast } from 'sonner';
+import type { AIAttachment } from '@/types/ai';
+import { useAudioRecorder } from '@/hooks/useAudioRecorder';
+import { speakText, stopSpeaking, isSpeechSynthesisSupported } from '@/hooks/speech';
 
 const modes = [
   { id: 'recommend_stack', label: 'Recommend Stack', icon: Wrench, prompt: 'Suggest a modern tech stack for a real-time web application.' },
@@ -22,11 +46,33 @@ const modes = [
 
 type ModeId = typeof modes[number]['id'];
 
+interface PendingAttachment {
+  file: File;
+  previewUrl?: string;
+}
+
 interface ChatMessage {
   id?: string;
   role: 'user' | 'assistant';
   content: string;
+  attachments?: AIAttachment[];
 }
+
+const ACCEPTED_FILE_TYPES = [
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+  'application/pdf',
+  'text/plain',
+  'text/markdown',
+  'application/json',
+  'audio/webm',
+  'audio/wav',
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/m4a',
+];
 
 export default function AssistantPage() {
   const { profile, user } = useAuth();
@@ -40,11 +86,37 @@ export default function AssistantPage() {
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  // Phase 10 Multimodal & Voice States
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [uploadingAttachments, setUploadingAttachments] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | number | null>(null);
+
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const recorder = useAudioRecorder();
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  // Cleanup object URLs and speech on unmount
+  useEffect(() => {
+    return () => {
+      pendingAttachments.forEach((item) => {
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      });
+      stopSpeaking();
+    };
+  }, []);
+
+  // Toast recording errors if any occur
+  useEffect(() => {
+    if (recorder.error) {
+      toast.error(recorder.error);
+    }
+  }, [recorder.error]);
 
   // Restore latest or query-specified active conversation on mount
   useEffect(() => {
@@ -72,11 +144,22 @@ export default function AssistantPage() {
             setSelectedMode((detailData.conversation.mode as ModeId) || 'recommend_stack');
             setSelectedProvider((detailData.conversation.provider as AIProviderId) || defaultAIProvider);
             setMessages(
-              (detailData.messages || []).map((m: any) => ({
-                id: m.id,
-                role: m.role,
-                content: m.content,
-              }))
+              (detailData.messages || []).map((m: any) => {
+                const metadata = m.metadata;
+                const attachments =
+                  metadata &&
+                  typeof metadata === 'object' &&
+                  Array.isArray(metadata.attachments)
+                    ? metadata.attachments
+                    : undefined;
+
+                return {
+                  id: m.id,
+                  role: m.role,
+                  content: m.content,
+                  attachments,
+                };
+              })
             );
           }
         }
@@ -102,18 +185,128 @@ export default function AssistantPage() {
     setConversationId(null);
     setMessages([]);
     setInput('');
+    pendingAttachments.forEach((item) => {
+      if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+    });
+    setPendingAttachments([]);
+    stopSpeaking();
+    setSpeakingMessageId(null);
     toast.info('Started a new conversation session.');
+  };
+
+  const handleAttachmentSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    const validFiles: PendingAttachment[] = [];
+    let skippedInvalid = false;
+
+    for (const file of files) {
+      if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
+        skippedInvalid = true;
+        continue;
+      }
+
+      const isImage = file.type.startsWith('image/');
+      validFiles.push({
+        file,
+        previewUrl: isImage ? URL.createObjectURL(file) : undefined,
+      });
+    }
+
+    if (skippedInvalid) {
+      toast.error('Unsupported file type.');
+    }
+
+    if (pendingAttachments.length + validFiles.length > 5) {
+      toast.error('Maximum 5 attachments allowed.');
+      const allowedCount = 5 - pendingAttachments.length;
+      const truncated = validFiles.slice(0, Math.max(0, allowedCount));
+      setPendingAttachments((prev) => [...prev, ...truncated]);
+    } else {
+      setPendingAttachments((prev) => [...prev, ...validFiles]);
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removePendingAttachment = (index: number) => {
+    setPendingAttachments((prev) => {
+      const item = prev[index];
+      if (item?.previewUrl) {
+        URL.revokeObjectURL(item.previewUrl);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const handleSend = async (overridePrompt?: string) => {
     const textToSend = overridePrompt || input.trim();
-    if (!textToSend || loading) return;
+    if (
+      (!textToSend && pendingAttachments.length === 0) ||
+      loading ||
+      uploadingAttachments ||
+      transcribing
+    ) {
+      return;
+    }
 
-    const userMessage: ChatMessage = { role: 'user', content: textToSend };
+    let uploadedAttachments: AIAttachment[] = [];
+
+    // Step A: Upload attachments if any exist
+    if (pendingAttachments.length > 0) {
+      setUploadingAttachments(true);
+      try {
+        const formData = new FormData();
+        if (conversationId) {
+          formData.append('conversation_id', conversationId);
+        }
+        pendingAttachments.forEach((item) => {
+          formData.append('file', item.file);
+        });
+
+        const uploadRes = await fetch('/api/media/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const uploadData = await uploadRes.json();
+
+        if (!uploadRes.ok) {
+          throw new Error(uploadData.error || 'File upload failed.');
+        }
+
+        uploadedAttachments = uploadData.attachments || [];
+      } catch (err: any) {
+        toast.error(err.message || 'File upload failed.');
+        setUploadingAttachments(false);
+        return; // Retain files in pending state so user can retry
+      } finally {
+        setUploadingAttachments(false);
+      }
+    }
+
+    // Step B: Add user message locally
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: textToSend,
+      attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
+    };
+
     setMessages((prev) => [...prev, userMessage]);
     if (!overridePrompt) setInput('');
+
+    // Clear pending attachments & revoke object URLs
+    pendingAttachments.forEach((item) => {
+      if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+    });
+    setPendingAttachments([]);
+
     setLoading(true);
 
+    // Step C: Send request to /api/ai
     try {
       const res = await fetch('/api/ai', {
         method: 'POST',
@@ -123,6 +316,7 @@ export default function AssistantPage() {
           mode: selectedMode,
           provider: selectedProvider,
           conversation_id: conversationId,
+          attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
         }),
       });
 
@@ -152,6 +346,74 @@ export default function AssistantPage() {
   const handleQuickPrompt = (mode: typeof modes[number]) => {
     setSelectedMode(mode.id);
     handleSend(mode.prompt);
+  };
+
+  const handleStartRecording = async () => {
+    try {
+      await recorder.start();
+    } catch {
+      toast.error('Microphone access was denied.');
+    }
+  };
+
+  const handleStopRecording = async () => {
+    const blob = await recorder.stop();
+    if (!blob) return;
+
+    setTranscribing(true);
+    try {
+      const formData = new FormData();
+      formData.append(
+        'audio',
+        new File([blob], 'voice-message.webm', { type: blob.type || 'audio/webm' })
+      );
+
+      const res = await fetch('/api/ai/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Voice transcription failed.');
+      }
+
+      if (data.text) {
+        setInput((prev) => (prev ? `${prev} ${data.text}` : data.text));
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Voice transcription failed.');
+    } finally {
+      setTranscribing(false);
+    }
+  };
+
+  const handleCancelRecording = () => {
+    recorder.cancel();
+  };
+
+  const handleSpeakMessage = (messageKey: string | number, text: string) => {
+    if (!isSpeechSynthesisSupported()) {
+      toast.error('Speech synthesis is not supported by this browser.');
+      return;
+    }
+
+    if (speakingMessageId === messageKey) {
+      stopSpeaking();
+      setSpeakingMessageId(null);
+    } else {
+      stopSpeaking();
+      setSpeakingMessageId(messageKey);
+      speakText(text);
+    }
+  };
+
+  const formatElapsedTime = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   };
 
   return (
@@ -267,14 +529,72 @@ export default function AssistantPage() {
                         </div>
                       )}
 
-                      <div
-                        className={`max-w-[85%] rounded-lg px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed ${
-                          msg.role === 'user'
-                            ? 'bg-primary text-primary-foreground font-medium'
-                            : 'bg-muted/70 text-foreground border border-border/40'
-                        }`}
-                      >
-                        {msg.content}
+                      <div className="flex flex-col gap-1 max-w-[85%]">
+                        <div
+                          className={`rounded-lg px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed ${
+                            msg.role === 'user'
+                              ? 'bg-primary text-primary-foreground font-medium'
+                              : 'bg-muted/70 text-foreground border border-border/40'
+                          }`}
+                        >
+                          {msg.content}
+
+                          {/* Render user attachments */}
+                          {msg.attachments && msg.attachments.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-primary-foreground/20">
+                              {msg.attachments.map((att, attIdx) => {
+                                const isImg = (att.mime_type || '').startsWith('image/');
+                                const isAudio = (att.mime_type || '').startsWith('audio/');
+
+                                return (
+                                  <div
+                                    key={att.id || attIdx}
+                                    className="flex items-center gap-1.5 bg-black/20 rounded px-2 py-1 text-[11px]"
+                                  >
+                                    {isImg ? (
+                                      <ImageIcon className="h-3.5 w-3.5" />
+                                    ) : isAudio ? (
+                                      <MusicIcon className="h-3.5 w-3.5" />
+                                    ) : (
+                                      <FileText className="h-3.5 w-3.5" />
+                                    )}
+                                    <span className="truncate max-w-[150px] font-medium">{att.name}</span>
+                                    {att.size && (
+                                      <span className="opacity-75 text-[10px]">
+                                        ({(att.size / 1024).toFixed(0)}KB)
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Speaker button for assistant messages */}
+                        {msg.role === 'assistant' && msg.content && (
+                          <div className="flex items-center justify-start">
+                            <button
+                              type="button"
+                              onClick={() => handleSpeakMessage(msg.id || i, msg.content)}
+                              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 px-1 py-0.5 rounded transition-colors"
+                              aria-label={speakingMessageId === (msg.id || i) ? 'Stop speaking' : 'Read response aloud'}
+                              title={speakingMessageId === (msg.id || i) ? 'Stop speaking' : 'Read response aloud'}
+                            >
+                              {speakingMessageId === (msg.id || i) ? (
+                                <>
+                                  <VolumeX className="h-3.5 w-3.5 text-primary animate-pulse" />
+                                  <span className="text-[10px] text-primary font-medium">Stop</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Volume2 className="h-3.5 w-3.5" />
+                                  <span className="text-[10px]">Read aloud</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {msg.role === 'user' && (
@@ -303,18 +623,170 @@ export default function AssistantPage() {
             </CardContent>
 
             <div className="border-t border-border/40 p-3">
-              <div className="flex gap-2">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder={`Ask ${assistantIdentity.name} in ${selectedMode.replace('_', ' ')} mode...`}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  disabled={loading || loadingInitial}
-                />
-                <Button size="icon" onClick={() => handleSend()} disabled={loading || loadingInitial || !input.trim()} aria-label="Send message">
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                </Button>
-              </div>
+              {/* Attachment Preview Tray */}
+              {pendingAttachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2 p-2 rounded-lg bg-muted/40 border border-border/40">
+                  {pendingAttachments.map((item, idx) => {
+                    const isImg = item.file.type.startsWith('image/');
+                    const isDoc =
+                      item.file.type.includes('pdf') ||
+                      item.file.type.includes('text') ||
+                      item.file.type.includes('json');
+                    const isAudio = item.file.type.startsWith('audio/');
+
+                    return (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-1.5 bg-card border border-border/60 rounded px-2 py-1 text-xs"
+                      >
+                        {isImg && item.previewUrl ? (
+                          <img
+                            src={item.previewUrl}
+                            alt={item.file.name}
+                            className="h-6 w-6 object-cover rounded"
+                          />
+                        ) : isDoc ? (
+                          <FileText className="h-4 w-4 text-blue-500" />
+                        ) : isAudio ? (
+                          <MusicIcon className="h-4 w-4 text-amber-500" />
+                        ) : (
+                          <Paperclip className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <span className="truncate max-w-[120px] text-[11px] font-medium">
+                          {item.file.name}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          ({(item.file.size / 1024).toFixed(0)}KB)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removePendingAttachment(idx)}
+                          className="text-muted-foreground hover:text-destructive p-0.5 rounded transition-colors"
+                          aria-label="Remove attachment"
+                          title="Remove attachment"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept={ACCEPTED_FILE_TYPES.join(',')}
+                className="hidden"
+                onChange={handleAttachmentSelection}
+              />
+
+              {recorder.isRecording ? (
+                <div className="flex items-center justify-between bg-muted/60 p-2.5 rounded-lg border border-red-500/30">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full bg-red-500 animate-ping" />
+                    <span className="text-xs font-mono font-semibold text-red-500">
+                      Recording {formatElapsedTime(recorder.elapsedMs)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelRecording}
+                      aria-label="Cancel recording"
+                      title="Cancel recording"
+                      className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5 mr-1" />
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleStopRecording}
+                      disabled={transcribing}
+                      aria-label="Stop recording"
+                      title="Stop recording"
+                      className="h-8 px-2.5 text-xs"
+                    >
+                      {transcribing ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                      ) : (
+                        <Square className="h-3.5 w-3.5 mr-1 fill-current" />
+                      )}
+                      {transcribing ? 'Transcribing...' : 'Stop'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2 items-center">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Attach files"
+                    title="Attach files"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={loading || loadingInitial || uploadingAttachments || transcribing}
+                    className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Start voice recording"
+                    title="Start voice recording"
+                    onClick={handleStartRecording}
+                    disabled={loading || loadingInitial || uploadingAttachments || transcribing}
+                    className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
+                  >
+                    <Mic className="h-4 w-4" />
+                  </Button>
+
+                  <Input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder={
+                      uploadingAttachments
+                        ? 'Uploading attachments...'
+                        : transcribing
+                        ? 'Transcribing voice audio...'
+                        : `Ask ${assistantIdentity.name} in ${selectedMode.replace('_', ' ')} mode...`
+                    }
+                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                    disabled={loading || loadingInitial || uploadingAttachments || transcribing}
+                    className="text-xs"
+                  />
+
+                  <Button
+                    size="icon"
+                    onClick={() => handleSend()}
+                    disabled={
+                      loading ||
+                      loadingInitial ||
+                      uploadingAttachments ||
+                      transcribing ||
+                      (!input.trim() && pendingAttachments.length === 0)
+                    }
+                    aria-label="Send message"
+                    title="Send message"
+                    className="h-9 w-9 shrink-0"
+                  >
+                    {loading || uploadingAttachments ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
           </Card>
         </div>
@@ -322,3 +794,4 @@ export default function AssistantPage() {
     </PageContainer>
   );
 }
+

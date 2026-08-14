@@ -49,7 +49,21 @@ export interface PaginatedResponse<T> {
   hasMore: boolean;
 }
 
-export type AIProviderId = 'gemini' | 'groq' | 'mistral' | 'openai' | 'claude' | 'ollama';
+export type AIProviderId =
+  | 'groq'
+  | 'cerebras'
+  | 'gemini'
+  | 'mistral'
+  | 'deepseek'
+  | 'nvidia-nim'
+  | 'openrouter'
+  | 'github-models'
+  | 'cloudflare-ai'
+  | 'cohere'
+  | 'huggingface'
+  | 'openai'
+  | 'claude'
+  | 'ollama';
 
 export type AIMode =
   | 'recommend_stack'

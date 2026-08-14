@@ -1,6 +1,7 @@
-import type { AIProvider } from '@/lib/ai/provider';
+﻿import type { AIProvider } from '@/lib/ai/provider';
 import type { AIRequest, AIResponse } from '@/types/ai';
 import { getSystemPrompt } from '@/lib/ai/prompts';
+import { resolveAttachmentContent } from './attachments';
 
 export class OpenAIService implements AIProvider {
   id = 'openai' as const;
@@ -18,6 +19,32 @@ export class OpenAIService implements AIProvider {
 
     const systemInstruction =
       request.systemOverride || getSystemPrompt(request.mode);
+
+    const resolvedAttachments = await resolveAttachmentContent(
+      request.attachments ?? [],
+    );
+
+    const imageContent = resolvedAttachments
+      .filter(
+        (item) =>
+          Boolean(item.base64) &&
+          item.attachment.type === 'image' &&
+          item.attachment.mime_type.startsWith('image/'),
+      )
+      .map((item) => ({
+        type: 'image_url',
+        image_url: {
+          url: `data:${item.attachment.mime_type};base64,${item.base64}`,
+        },
+      }));
+
+    const userContent = [
+      {
+        type: 'text',
+        text: request.message,
+      },
+      ...imageContent,
+    ];
 
     const res = await fetch(
       'https://api.openai.com/v1/chat/completions',
@@ -37,7 +64,7 @@ export class OpenAIService implements AIProvider {
             },
             {
               role: 'user',
-              content: request.message,
+              content: userContent,
             },
           ],
           max_tokens: request.maxTokens ?? 2048,
@@ -45,13 +72,13 @@ export class OpenAIService implements AIProvider {
             ? { temperature: request.temperature }
             : {}),
         }),
-      }
+      },
     );
 
     if (!res.ok) {
       const errorDetails = await res.text();
       throw new Error(
-        `OpenAI API error (HTTP ${res.status}): ${errorDetails}`
+        `OpenAI API error (HTTP ${res.status}): ${errorDetails}`,
       );
     }
 
@@ -69,4 +96,3 @@ export class OpenAIService implements AIProvider {
     };
   }
 }
-

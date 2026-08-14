@@ -1,7 +1,8 @@
-import type { AIProvider } from '@/lib/ai/provider';
+﻿import type { AIProvider } from '@/lib/ai/provider';
 import type { AIRequest, AIResponse } from '@/types/ai';
 import { getSystemPrompt } from '@/lib/ai/prompts';
 import { aiProviders } from '@/config/ai';
+import { resolveAttachmentContent } from './attachments';
 
 const defaultGeminiModel =
   aiProviders.find((provider) => provider.id === 'gemini')?.defaultModel ||
@@ -28,6 +29,24 @@ export class GeminiService implements AIProvider {
     const endpoint =
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
+    const resolvedAttachments = await resolveAttachmentContent(
+      request.attachments ?? [],
+    );
+
+    const imageParts = resolvedAttachments
+      .filter(
+        (item) =>
+          Boolean(item.base64) &&
+          item.attachment.type === 'image' &&
+          item.attachment.mime_type.startsWith('image/'),
+      )
+      .map((item) => ({
+        inlineData: {
+          mimeType: item.attachment.mime_type,
+          data: item.base64,
+        },
+      }));
+
     const res = await fetch(endpoint, {
       method: 'POST',
       signal: request.signal,
@@ -50,6 +69,7 @@ export class GeminiService implements AIProvider {
               {
                 text: `User Question (${request.mode}): ${request.message}`,
               },
+              ...imageParts,
             ],
           },
         ],
@@ -65,7 +85,7 @@ export class GeminiService implements AIProvider {
     if (!res.ok) {
       const errorDetails = await res.text();
       throw new Error(
-        `Gemini API error (HTTP ${res.status}): ${errorDetails}`
+        `Gemini API error (HTTP ${res.status}): ${errorDetails}`,
       );
     }
 
@@ -84,4 +104,3 @@ export class GeminiService implements AIProvider {
     };
   }
 }
-

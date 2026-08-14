@@ -14,6 +14,8 @@
 
 # production
 /build
+/target
+e2e-java/target
 
 # misc
 .DS_Store
@@ -43,3 +45,13 @@ next-env.d.ts
 
 # Monaco editor assets, generated from node_modules by scripts/copy-monaco.mjs
 /public/monaco-editor
+
+# local backups & temporary audit reports
+*backup*
+.*backup*
+*.backup
+*.zip
+AI-NEXUS-*.txt
+
+
+

@@ -1,3 +1,7 @@
+﻿import { webSearch } from '@/services/web-search';
+import { executeInternalWebsiteSearchTool } from "@/lib/ai/internal-search-tool";
+import { executeWebsiteWriteTool } from "@/lib/ai/website-write-tools";
+import { executeWebsiteTool } from "@/lib/ai/website-tools";
 /**
  * Executes validated tool calls against the existing IDE infrastructure.
  *
@@ -387,6 +391,41 @@ export async function executeToolCall(
   switch (call.tool) {
     /* ---- reads ---- */
 
+
+    case 'search_internal_website': {
+      const args = call.args;
+
+      return executeInternalWebsiteSearchTool(
+        String(args.query),
+        (args.entity ?? 'all') as
+          | 'tools'
+          | 'projects'
+          | 'knowledge'
+          | 'roadmaps'
+          | 'all',
+      );
+    }
+
+
+    case 'web_search': {
+      const args = call.args;
+
+      const result = await webSearch({
+        query: String(args.query),
+        maxResults: Number(args.maxResults ?? 5),
+      });
+
+      return {
+        ok: true,
+        content: JSON.stringify(result, null, 2),
+      };
+    }
+
+    case 'read_tools':
+    case 'read_projects':
+    case 'read_knowledge':
+    case 'read_roadmaps':
+      return executeWebsiteTool(call);
     case 'project_list_files': {
       const { data } = await exec.ctx.supabase
         .from('ide_project_files')
@@ -598,7 +637,29 @@ export async function executeToolCall(
     case 'ask_user':
       return { ok: true, content: 'Waiting for the user.', question: String(a.question) };
 
-    default: {
+        case "create_project":
+    case "update_project":
+    case "delete_project":
+    case "create_tool":
+    case "update_tool":
+    case "delete_tool":
+    case "create_knowledge":
+    case "update_knowledge":
+    case "delete_knowledge":
+    case "create_roadmap":
+    case "update_roadmap":
+    case "delete_roadmap": {
+      const result = await executeWebsiteWriteTool(
+        call as never
+      );
+
+      return {
+        ok: result.success,
+        content: JSON.stringify(result.data ?? result),
+        pendingActionId: result.pendingActionId,
+      };
+    }
+default: {
       const exhaustive: never = call.tool;
       return { ok: false, content: `Unsupported tool: ${String(exhaustive)}` };
     }
@@ -612,3 +673,10 @@ export function parentOf(path: string): string {
 
 /** Byte length helper re-exported so callers do not import two modules. */
 export { byteLength, detectLanguage };
+
+
+
+
+
+
+

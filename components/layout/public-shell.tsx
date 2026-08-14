@@ -1,5 +1,6 @@
 import { PublicHeader } from './public-header';
 import { PublicFooter } from './public-footer';
+import { AboutMeWidget } from '@/components/public/AboutMeWidget';
 
 export function PublicShell({ children }: { children: React.ReactNode }) {
   return (
@@ -7,6 +8,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
       <PublicHeader />
       <main className="flex-1">{children}</main>
       <PublicFooter />
+      <AboutMeWidget />
     </div>
   );
 }

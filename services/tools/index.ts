@@ -1,63 +1,122 @@
-import type { Tool } from '@/types/tools';
-import type { PaginatedResponse } from '@/types/common';
+﻿import type { Tool } from "@/types/tools";
+import { createSupabasePublicClient } from "@/lib/supabase/public";
 
-// TODO: Connect to Supabase in a later stage. Returns mock data for now.
-
-const mockTools: Tool[] = [
-  {
-    id: '1',
-    name: 'Cursor',
-    slug: 'cursor',
-    description: 'AI-first code editor for pair programming with AI.',
-    category: 'AI Editor',
-    tags: ['ai', 'editor', 'productivity'],
-    pricing: 'freemium',
-    pricing_details: 'Free tier with Pro at $20/mo',
-    is_open_source: false,
-    image_url: null,
-    logo_url: null,
-    website_url: 'https://cursor.sh',
-    github_url: null,
-    documentation_url: null,
-    youtube_url: null,
-    featured: true,
-    published: true,
-    display_order: 1,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: '2',
-    name: 'Vercel',
-    slug: 'vercel',
-    description: 'Frontend cloud platform for deploying and scaling web apps.',
-    category: 'Deployment',
-    tags: ['deployment', 'hosting', 'nextjs'],
-    pricing: 'freemium',
-    pricing_details: 'Hobby free, Pro $20/mo',
-    is_open_source: false,
-    image_url: null,
-    logo_url: null,
-    website_url: 'https://vercel.com',
-    github_url: null,
-    documentation_url: 'https://vercel.com/docs',
-    youtube_url: null,
-    featured: true,
-    published: true,
-    display_order: 2,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-  },
-];
-
-export function getTools(): PaginatedResponse<Tool> {
-  return { data: mockTools, total: mockTools.length, page: 1, limit: 20, hasMore: false };
+export interface PaginatedResponse<T> {
+  data: T[];
+  count: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
-export function getToolBySlug(slug: string): Tool | null {
-  return mockTools.find((t) => t.slug === slug) ?? null;
+function mapTool(row: Record<string, any>): Tool {
+  const pricing =
+    row.pricing && typeof row.pricing === "object"
+      ? row.pricing
+      : {};
+
+  const metadata =
+    row.metadata && typeof row.metadata === "object"
+      ? row.metadata
+      : {};
+
+  const now = new Date().toISOString();
+
+  return {
+    id: row.id,
+    created_at: row.created_at ?? metadata.original_created_at ?? now,
+    updated_at: row.updated_at ?? metadata.original_updated_at ?? now,
+    featured: Boolean(row.featured),
+    published: row.status === "published",
+    display_order:
+      typeof metadata.display_order === "number"
+        ? metadata.display_order
+        : 0,
+
+    name: row.name,
+    slug: row.slug,
+    description: row.description ?? row.tagline ?? "",
+    category: row.category ?? "",
+    tags: Array.isArray(row.tags) ? row.tags : [],
+
+    pricing: pricing.value ?? "free",
+    pricing_details: pricing.details ?? null,
+    is_open_source: Boolean(metadata.is_open_source),
+
+    image_url: row.image_url ?? null,
+    logo_url: row.logo_url ?? null,
+
+    website_url: row.website_url ?? null,
+    github_url: metadata.github_url ?? null,
+    documentation_url: row.documentation_url ?? null,
+    youtube_url: metadata.youtube_url ?? null,
+  };
 }
 
-export function getFeaturedTools(): Tool[] {
-  return mockTools.filter((t) => t.featured);
+export async function getTools(
+  page = 1,
+  pageSize = 50
+): Promise<PaginatedResponse<Tool>> {
+  const supabase = createSupabasePublicClient();
+
+  const from = Math.max(0, (page - 1) * pageSize);
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
+    .from("nexus_tools")
+    .select("*", { count: "exact" })
+    .eq("status", "published")
+    .order("featured", { ascending: false })
+    .order("name")
+    .range(from, to);
+
+  if (error) {
+    throw new Error(`Failed to load tools: ${error.message}`);
+  }
+
+  const total = count ?? 0;
+
+  return {
+    data: (data ?? []).map(mapTool),
+    count: total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+export async function getToolBySlug(
+  slug: string
+): Promise<Tool | null> {
+  const supabase = createSupabasePublicClient();
+
+  const { data, error } = await supabase
+    .from("nexus_tools")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load tool: ${error.message}`);
+  }
+
+  return data ? mapTool(data) : null;
+}
+
+export async function getFeaturedTools(): Promise<Tool[]> {
+  const supabase = createSupabasePublicClient();
+
+  const { data, error } = await supabase
+    .from("nexus_tools")
+    .select("*")
+    .eq("status", "published")
+    .eq("featured", true)
+    .order("name");
+
+  if (error) {
+    throw new Error(`Failed to load featured tools: ${error.message}`);
+  }
+
+  return (data ?? []).map(mapTool);
 }

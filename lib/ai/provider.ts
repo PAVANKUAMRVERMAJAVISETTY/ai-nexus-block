@@ -6,6 +6,14 @@ import { ClaudeService } from '@/services/ai/claude.service';
 import { OllamaService } from '@/services/ai/ollama.service';
 import { GroqService } from '@/services/ai/groq.service';
 import { MistralService } from '@/services/ai/mistral.service';
+import { CerebrasService } from '@/services/ai/cerebras.service';
+import { DeepSeekService } from '@/services/ai/deepseek.service';
+import { NvidiaNimService } from '@/services/ai/nvidia.service';
+import { OpenRouterService } from '@/services/ai/openrouter.service';
+import { GitHubModelsService } from '@/services/ai/github-models.service';
+import { CloudflareAIService } from '@/services/ai/cloudflare.service';
+import { CohereService } from '@/services/ai/cohere.service';
+import { HuggingFaceService } from '@/services/ai/huggingface.service';
 
 export interface AIProvider {
   id: AIProviderId;
@@ -13,9 +21,17 @@ export interface AIProvider {
 }
 
 const providers: Record<AIProviderId, AIProvider> = {
-  gemini: new GeminiService(),
   groq: new GroqService(),
+  cerebras: new CerebrasService(),
+  gemini: new GeminiService(),
   mistral: new MistralService(),
+  deepseek: new DeepSeekService(),
+  'nvidia-nim': new NvidiaNimService(),
+  openrouter: new OpenRouterService(),
+  'github-models': new GitHubModelsService(),
+  'cloudflare-ai': new CloudflareAIService(),
+  cohere: new CohereService(),
+  huggingface: new HuggingFaceService(),
   openai: new OpenAIService(),
   claude: new ClaudeService(),
   ollama: new OllamaService(),

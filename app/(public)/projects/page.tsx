@@ -1,13 +1,10 @@
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
-import { PageContainer, PageHeader, EmptyState } from '@/components/common';
+﻿import { PageContainer, PageHeader, EmptyState } from '@/components/common';
 import { ProjectCard } from '@/components/cards';
-import { Button } from '@/components/ui/button';
 import { getProjects } from '@/services/projects';
 import { FolderGit2 } from 'lucide-react';
 
-export default function ProjectsPage() {
-  const { data: projects } = getProjects();
+export default async function ProjectsPage() {
+  const { data: projects } = await getProjects();
 
   return (
     <PageContainer>
@@ -15,6 +12,7 @@ export default function ProjectsPage() {
         title="Projects"
         description="Featured work, case studies, and engineering experiments."
       />
+
       <div className="mt-8">
         {projects.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">

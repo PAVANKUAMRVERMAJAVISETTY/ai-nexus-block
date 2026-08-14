@@ -1,4 +1,4 @@
-import type { BaseEntity, UUID, ISODateString, MessageRole, AIProviderId, AIMode } from './common';
+﻿import type { BaseEntity, UUID, ISODateString, MessageRole, AIProviderId, AIMode } from './common';
 
 export interface AIConversation extends BaseEntity {
   user_id: UUID;
@@ -33,9 +33,20 @@ export interface AIRecommendationItem {
   metadata: Record<string, unknown> | null;
 }
 
+
+export interface AIAttachment {
+  id: string;
+  type: 'image' | 'document' | 'audio';
+  file_path: string;
+  bucket: string;
+  name: string;
+  mime_type: string;
+  size: number;
+}
 export interface AIRequest {
   signal?: AbortSignal;
   message: string;
+  attachments?: AIAttachment[];
   mode: AIMode;
   conversation_id?: UUID;
   context?: Record<string, unknown>;
@@ -54,4 +65,5 @@ export interface AIResponse {
   tokens_used: number;
   provider: AIProviderId;
 }
+
 

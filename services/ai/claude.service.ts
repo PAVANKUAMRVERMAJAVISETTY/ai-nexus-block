@@ -1,6 +1,7 @@
-import type { AIProvider } from '@/lib/ai/provider';
+﻿import type { AIProvider } from '@/lib/ai/provider';
 import type { AIRequest, AIResponse } from '@/types/ai';
 import { getSystemPrompt } from '@/lib/ai/prompts';
+import { resolveAttachmentContent } from './attachments';
 
 export class ClaudeService implements AIProvider {
   id = 'claude' as const;
@@ -20,6 +21,26 @@ export class ClaudeService implements AIProvider {
     const systemInstruction =
       request.systemOverride || getSystemPrompt(request.mode);
 
+    const resolvedAttachments = await resolveAttachmentContent(
+      request.attachments ?? [],
+    );
+
+    const imageContent = resolvedAttachments
+      .filter(
+        (item) =>
+          Boolean(item.base64) &&
+          item.attachment.type === 'image' &&
+          item.attachment.mime_type.startsWith('image/'),
+      )
+      .map((item) => ({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: item.attachment.mime_type,
+          data: item.base64,
+        },
+      }));
+
     const res = await fetch(
       'https://api.anthropic.com/v1/messages',
       {
@@ -37,20 +58,26 @@ export class ClaudeService implements AIProvider {
           messages: [
             {
               role: 'user',
-              content: request.message,
+              content: [
+                {
+                  type: 'text',
+                  text: request.message,
+                },
+                ...imageContent,
+              ],
             },
           ],
           ...(request.temperature !== undefined
             ? { temperature: request.temperature }
             : {}),
         }),
-      }
+      },
     );
 
     if (!res.ok) {
       const errorDetails = await res.text();
       throw new Error(
-        `Claude API error (HTTP ${res.status}): ${errorDetails}`
+        `Claude API error (HTTP ${res.status}): ${errorDetails}`,
       );
     }
 
@@ -70,4 +97,3 @@ export class ClaudeService implements AIProvider {
     };
   }
 }
-

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Nexus AI Assistant — the product-facing assistant layer.
  *
  * PRODUCT RULE: the user talks to "Nexus AI Assistant". Gemini, OpenAI and
@@ -12,7 +12,8 @@
  */
 
 import type { AIProviderId, AIMode } from '@/types/common';
-import type { AIRequest, AIResponse } from '@/types/ai';
+import type { AIRequest, AIResponse, AIAttachment } from '@/types/ai';
+import { attachmentReferenceText } from '@/services/ai/attachments';
 import { getProvider } from './provider';
 import {
   aiProviders,
@@ -76,6 +77,7 @@ export interface NexusGenerateOptions {
    * stale admin setting can never take the assistant offline.
    */
   preferredProvider?: AIProviderId;
+  attachments?: AIAttachment[];
 }
 
 export interface NexusGenerateResult {
@@ -157,11 +159,17 @@ export async function generate(options: NexusGenerateOptions): Promise<NexusGene
 
     try {
       const provider = getProvider(providerId);
+      const attachmentText = attachmentReferenceText(options.attachments ?? []);
+      const effectiveSystem = [options.system, attachmentText]
+        .filter(Boolean)
+        .join('\n\n');
+
       const request: AIRequest = {
         message: options.message,
         mode: (options.mode ?? 'general') as AIMode,
         conversation_id: options.conversationId,
-        systemOverride: options.system,
+        systemOverride: effectiveSystem,
+        attachments: options.attachments,
         maxTokens: options.maxTokens,
         temperature: options.temperature,
       };
@@ -187,6 +195,9 @@ export async function generate(options: NexusGenerateOptions): Promise<NexusGene
       (process.env.NODE_ENV === 'development' ? ` (${errors.join('; ')})` : '')
   );
 }
+
+
+
 
 
 

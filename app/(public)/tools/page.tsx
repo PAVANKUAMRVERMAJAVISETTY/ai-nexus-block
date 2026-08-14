@@ -1,10 +1,10 @@
-import { PageContainer, PageHeader, EmptyState } from '@/components/common';
+﻿import { PageContainer, PageHeader, EmptyState } from '@/components/common';
 import { ToolCard } from '@/components/cards';
 import { getTools } from '@/services/tools';
 import { Wrench } from 'lucide-react';
 
-export default function ToolsPage() {
-  const { data: tools } = getTools();
+export default async function ToolsPage() {
+  const { data: tools } = await getTools();
 
   return (
     <PageContainer>
@@ -12,6 +12,7 @@ export default function ToolsPage() {
         title="AI Tools"
         description="A curated catalog of AI and developer tools with pricing, categories, and recommendations."
       />
+
       <div className="mt-8">
         {tools.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -1,12 +1,20 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from "next/server";
+import {
+  buildNexusRuntimeContext,
+  serializeNexusRuntimeContext,
+} from "@/lib/ai/nexus-runtime-context";
+import { buildPageAwareAgentPrompt } from "@/lib/ai/page-aware-prompt";
+import { loadPublicAgentSession, savePublicAgentSession } from "@/lib/ai/public-agent-session-store";
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { generate, NoProviderConfiguredError } from '@/lib/ai/nexus-assistant';
 import { getSystemPrompt } from '@/lib/ai/prompts';
 import { RATE_LIMITS, hit, rateLimitHeaders } from '@/lib/security/rate-limit';
 import type { AIProviderId, AIMode } from '@/types/common';
-import { needsWebSearch } from '@/services/web-search/intent';
+import type { AIAttachment } from '@/types/ai';
+import { advanceSession, createSessionState, continueSession, resumeAfterInput, type AgentPorts, type ToolResult } from '@/lib/ai/agent-loop';
+import { executeInternalWebsiteSearchTool } from '@/lib/ai/internal-search-tool';
+import { searchInternalWebsite } from '@/services/internal-search';
 import { webSearch } from '@/services/web-search';
-import { formatWebSearchContext } from '@/services/web-search/context';
 
 export async function POST(request: Request) {
   try {
@@ -35,7 +43,46 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { message, mode = 'recommend_stack', provider = 'gemini', conversation_id } = body;
+    const pathname =
+      typeof body?.pathname === "string"
+        ? body.pathname
+        : request.headers.get("x-nexus-pathname") ?? undefined;
+
+    const runtimeContext = await buildNexusRuntimeContext(
+      pathname,
+      typeof body?.message === "string" ? body.message : undefined,
+    );
+
+    const pageAwarePrompt = buildPageAwareAgentPrompt(runtimeContext);
+
+    const {
+      message,
+      mode = 'recommend_stack',
+      provider = 'gemini',
+      conversation_id,
+      attachments = [],
+    } = body;
+
+    const normalizedAttachments: AIAttachment[] = Array.isArray(attachments)
+      ? attachments
+          .slice(0, 5)
+          .filter((item: unknown): item is AIAttachment => {
+            if (!item || typeof item !== 'object') return false;
+
+            const candidate = item as AIAttachment;
+
+            return (
+              typeof candidate.id === 'string' &&
+              typeof candidate.type === 'string' &&
+              typeof candidate.file_path === 'string' &&
+              typeof candidate.bucket === 'string' &&
+              typeof candidate.name === 'string' &&
+              typeof candidate.mime_type === 'string' &&
+              candidate.bucket === 'nexus-user-attachments' &&
+              candidate.file_path.startsWith(`${user.id}/`)
+            );
+          })
+      : [];
 
     if (!message || typeof message !== 'string' || !message.trim()) {
       return NextResponse.json(
@@ -110,53 +157,215 @@ export async function POST(request: Request) {
         conversation_id: activeConversationId,
         role: 'user',
         content: message.trim(),
+        metadata: normalizedAttachments.length
+          ? { attachments: normalizedAttachments }
+          : null,
       });
     }
 
-    // 5. Generate the response as the Nexus AI Assistant.
-    //    The backend is chosen from whichever providers are actually
-    //    configured, so a missing key degrades to another vendor instead of
-    //    surfacing a provider-branded error to the user.
-    let webSearchContext = '';
+    // 5. Run the public assistant through the Nexus agent loop.
+    //
+    // Phase 8 public tools:
+    //   - search_internal_website
+    //   - web_search
+    //
+    // The agent decides which tool to use, receives the result, and only
+    // then produces the final response.
 
-    if (needsWebSearch(message.trim(), mode as AIMode)) {
-      try {
-        const searchResponse = await webSearch({
-          query: message.trim(),
-          maxResults: 5,
-        });
+    // ------------------------------------------------------------
+    // ------------------------------------------------------------
+    // Phase 9 public agent orchestration.
+    //
+    // The route no longer pre-fetches data before the agent loop.
+    // The model chooses a public tool, receives the observation,
+    // and continues from the persisted state when another request
+    // arrives for the same conversation.
+    // ------------------------------------------------------------
 
-        webSearchContext = formatWebSearchContext(searchResponse.results);
-      } catch (searchError) {
-        console.error('[ai-route] Web search failed:', searchError);
+    const normalizedMessage = message.trim();
+
+/*
+ * PHASE 9:
+ * Restore the structured public agent state for this conversation.
+ * If no state exists yet, create a new one.
+ */
+const existingSession = activeConversationId
+  ? await loadPublicAgentSession(
+      supabase,
+      user.id,
+      activeConversationId,
+    )
+  : null;
+
+let state =
+  existingSession?.state ??
+  createSessionState(normalizedMessage);
+
+/*
+ * Continue the same agent session instead of creating
+ * an unrelated state for every HTTP request.
+ */
+if (existingSession) {
+  if (state.status === 'awaiting_input') {
+    state = resumeAfterInput(state, normalizedMessage);
+  } else {
+    state = continueSession(state, normalizedMessage);
+  }
+}
+
+/*
+ * These are prompt hints only.
+ * They DO NOT execute searches.
+ * Tool execution happens exclusively inside publicPorts.
+ */
+const websiteQuestion =
+  /\b(my website|my nexus|nexus website|ai nexus block|listed on|currently listed|from my website|on my website|my projects|my tools|my knowledge|my roadmaps)\b/i.test(
+    normalizedMessage,
+  );
+
+const currentExternalQuestion =
+  /\b(latest|current|today|now|recent|release|news|this week|this month|2026)\b/i.test(
+    normalizedMessage,
+  );
+
+/*
+ * Public assistant has exactly two tools.
+ * No IDE tools and no website mutation tools are exposed here.
+ */
+const systemPrompt = [
+  pageAwarePrompt,
+  profileContext,
+  `MODE: ${String(mode)}`,
+  `You are the public AI Nexus Assistant.`,
+  ``,
+  `PUBLIC AGENT POLICY:`,
+  `- You have exactly two public tools: search_internal_website and web_search.`,
+  `- These are the ONLY tools available in this public assistant.`,
+  `- Never mention or request IDE tools.`,
+  `- Never invent Nexus website content.`,
+  `- For Nexus website questions, ALWAYS use search_internal_website before answering.`,
+  `- For external/current questions, use web_search when current external information is required.`,
+  `- Internal Nexus data is the source of truth for Nexus website questions.`,
+  `- Do not claim a tool ran unless its observation exists in the agent transcript.`,
+  `- Do not answer Nexus website questions from memory.`,
+  `- Continue through the agent loop after every tool observation.`,
+  `- Use another tool when the first result is insufficient.`,
+  `- Only provide the final answer when enough evidence has been gathered.`,
+  websiteQuestion
+    ? `THIS REQUEST IS ABOUT AI NEXUS BLOCK. Use search_internal_website first.`
+    : '',
+  currentExternalQuestion
+    ? `THIS REQUEST MAY REQUIRE CURRENT INFORMATION. Use web_search when appropriate.`
+    : '',
+  ``,
+  `TOOL OUTPUT FORMAT:`,
+  `Emit exactly one fenced nexus-tool block for each tool request.`,
+  '```nexus-tool',
+  '{"tool":"search_internal_website","args":{"query":"..."}}',
+  '```',
+]
+  .filter(Boolean)
+  .join('\n\n');
+
+const publicPorts: AgentPorts = {
+  buildSystemPrompt: () => systemPrompt,
+
+  callModel: async ({ system, messages }) => {
+    const result = await generate({
+      message: messages,
+      system,
+      mode: mode as AIMode,
+      conversationId: activeConversationId,
+      preferredProvider: provider as AIProviderId,
+      attachments: normalizedAttachments,
+      maxTokens: 8192,
+    });
+
+    return result.content;
+  },
+
+  executeTool: async (call): Promise<ToolResult> => {
+    switch (call.tool) {
+      case 'search_internal_website': {
+        return executeInternalWebsiteSearchTool(
+          String(call.args.query),
+          (call.args.entity ?? 'all') as
+            | 'tools'
+            | 'projects'
+            | 'knowledge'
+            | 'roadmaps'
+            | 'all',
+        );
+      }
+
+      case 'web_search': {
+        try {
+          const result = await webSearch({
+            query: String(call.args.query),
+            maxResults: Number(call.args.maxResults ?? 5),
+          });
+
+          return {
+            ok: true,
+            content: JSON.stringify(result, null, 2),
+          };
+        } catch (error) {
+          return {
+            ok: false,
+            content:
+              error instanceof Error
+                ? error.message
+                : 'Web search failed.',
+          };
+        }
+      }
+
+      default: {
+        return {
+          ok: false,
+          content:
+            `Tool "${call.tool}" is not available in the public assistant.`,
+        };
       }
     }
-    let aiResult;
-    try {
-      aiResult = await generate({
-        message: [
-          profileContext,
-          webSearchContext
-            ? `[WEB SEARCH CONTEXT]
-${webSearchContext}
-[/WEB SEARCH CONTEXT]`
-            : '',
-          `User Prompt: ${message.trim()}`,
-        ]
-          .filter(Boolean)
-          .join("\n\n"),
-        mode: mode as AIMode,
-        system: getSystemPrompt(mode),
-        conversationId: activeConversationId,
-        preferredProvider: provider as AIProviderId,
-      });
-    } catch (error) {
-      if (error instanceof NoProviderConfiguredError) {
-        return NextResponse.json({ error: error.message }, { status: 503 });
-      }
-      throw error;
-    }
+  },
 
+  pollRun: async () => null,
+};
+
+const agentState = await advanceSession(
+  state,
+  publicPorts,
+  {
+    maxStepsThisCall: 8,
+  },
+);
+
+/*
+ * Persist the REAL structured agent state.
+ * This allows the next HTTP request using the same
+ * conversation_id to continue the same task.
+ */
+if (activeConversationId) {
+  await savePublicAgentSession(
+    supabase,
+    user.id,
+    activeConversationId,
+    agentState,
+  );
+}
+    const finalContent =
+      agentState.transcript.reduce(
+        (lastAssistantMessage, entry) =>
+          entry.type === 'assistant' ? entry.content : lastAssistantMessage,
+        '',
+      ) || 'I could not complete that request.';
+
+    const aiResult = {
+      content: finalContent,
+      conversationId: activeConversationId,
+      tokensUsed: 0,
+    };
     // 6. Persist Assistant Response to database if conversation exists
     if (activeConversationId) {
       await supabase.from('ai_messages').insert({
@@ -226,3 +435,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+
+
+
+
+
+
+
+
+
+

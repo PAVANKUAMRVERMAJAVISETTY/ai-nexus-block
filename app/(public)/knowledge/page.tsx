@@ -1,10 +1,10 @@
-import { PageContainer, PageHeader, EmptyState } from '@/components/common';
+﻿import { PageContainer, PageHeader, EmptyState } from '@/components/common';
 import { KnowledgeCard } from '@/components/cards';
 import { getKnowledgeArticles } from '@/services/knowledge';
 import { BookOpen } from 'lucide-react';
 
-export default function KnowledgePage() {
-  const { data: articles } = getKnowledgeArticles();
+export default async function KnowledgePage() {
+  const { data: articles } = await getKnowledgeArticles();
 
   return (
     <PageContainer>
@@ -12,6 +12,7 @@ export default function KnowledgePage() {
         title="Knowledge"
         description="Articles, guides, and engineering insights."
       />
+
       <div className="mt-8">
         {articles.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">

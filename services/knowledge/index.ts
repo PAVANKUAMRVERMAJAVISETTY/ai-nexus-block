@@ -1,57 +1,120 @@
-import type { KnowledgeArticle } from '@/types/knowledge';
-import type { PaginatedResponse } from '@/types/common';
+﻿import type { KnowledgeArticle } from "@/types/knowledge";
+import { createSupabasePublicClient } from "@/lib/supabase/public";
 
-// TODO: Connect to Supabase in a later stage. Returns mock data for now.
-
-const mockArticles: KnowledgeArticle[] = [
-  {
-    id: '1',
-    title: 'Understanding Agentic AI Systems',
-    slug: 'understanding-agentic-ai-systems',
-    excerpt: 'A deep dive into how agentic AI systems work and how to build them.',
-    content: 'Full article content will be here...',
-    category: 'AI Architecture',
-    tags: ['ai', 'agents', 'architecture'],
-    image_url: null,
-    documentation_url: null,
-    youtube_url: null,
-    reading_time_minutes: 12,
-    is_pinned: true,
-    featured: true,
-    published: true,
-    display_order: 1,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: '2',
-    title: 'Building with pgvector and Supabase',
-    slug: 'building-with-pgvector-supabase',
-    excerpt: 'How to implement vector search in your Supabase project using pgvector.',
-    content: 'Full article content will be here...',
-    category: 'Database',
-    tags: ['supabase', 'pgvector', 'database'],
-    image_url: null,
-    documentation_url: null,
-    youtube_url: null,
-    reading_time_minutes: 8,
-    is_pinned: false,
-    featured: true,
-    published: true,
-    display_order: 2,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-  },
-];
-
-export function getKnowledgeArticles(): PaginatedResponse<KnowledgeArticle> {
-  return { data: mockArticles, total: mockArticles.length, page: 1, limit: 20, hasMore: false };
+export interface PaginatedResponse<T> {
+  data: T[];
+  count: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
-export function getKnowledgeArticleBySlug(slug: string): KnowledgeArticle | null {
-  return mockArticles.find((a) => a.slug === slug) ?? null;
+function mapKnowledge(row: Record<string, any>): KnowledgeArticle {
+  const metadata =
+    row.metadata && typeof row.metadata === "object"
+      ? row.metadata
+      : {};
+
+  const now = new Date().toISOString();
+
+  return {
+    id: row.id,
+    created_at: row.created_at ?? metadata.original_created_at ?? now,
+    updated_at: row.updated_at ?? metadata.original_updated_at ?? now,
+    featured: Boolean(row.featured),
+    published: row.status === "published",
+    display_order:
+      typeof metadata.display_order === "number"
+        ? metadata.display_order
+        : 0,
+
+    title: row.title,
+    slug: row.slug,
+    excerpt: row.excerpt ?? "",
+    content: row.content ?? "",
+    category: row.category ?? "",
+    tags: Array.isArray(row.tags) ? row.tags : [],
+
+    reading_time_minutes:
+      typeof metadata.reading_time_minutes === "number"
+        ? metadata.reading_time_minutes
+        : null,
+
+    is_pinned: Boolean(metadata.is_pinned),
+
+    image_url: metadata.image_url ?? null,
+    logo_url: null,
+    website_url: null,
+    github_url: null,
+    documentation_url: metadata.documentation_url ?? null,
+    youtube_url: metadata.youtube_url ?? null,
+  };
 }
 
-export function getFeaturedArticles(): KnowledgeArticle[] {
-  return mockArticles.filter((a) => a.featured);
+export async function getKnowledgeArticles(
+  page = 1,
+  pageSize = 50
+): Promise<PaginatedResponse<KnowledgeArticle>> {
+  const supabase = createSupabasePublicClient();
+
+  const from = Math.max(0, (page - 1) * pageSize);
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
+    .from("nexus_knowledge")
+    .select("*", { count: "exact" })
+    .eq("status", "published")
+    .order("featured", { ascending: false })
+    .order("title")
+    .range(from, to);
+
+  if (error) {
+    throw new Error(`Failed to load knowledge: ${error.message}`);
+  }
+
+  const total = count ?? 0;
+
+  return {
+    data: (data ?? []).map(mapKnowledge),
+    count: total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+export async function getKnowledgeArticleBySlug(
+  slug: string
+): Promise<KnowledgeArticle | null> {
+  const supabase = createSupabasePublicClient();
+
+  const { data, error } = await supabase
+    .from("nexus_knowledge")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load knowledge article: ${error.message}`);
+  }
+
+  return data ? mapKnowledge(data) : null;
+}
+
+export async function getFeaturedKnowledge(): Promise<KnowledgeArticle[]> {
+  const supabase = createSupabasePublicClient();
+
+  const { data, error } = await supabase
+    .from("nexus_knowledge")
+    .select("*")
+    .eq("status", "published")
+    .eq("featured", true)
+    .order("title");
+
+  if (error) {
+    throw new Error(`Failed to load featured knowledge: ${error.message}`);
+  }
+
+  return (data ?? []).map(mapKnowledge);
 }

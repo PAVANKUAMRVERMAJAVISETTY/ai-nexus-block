@@ -1,59 +1,117 @@
-import type { Project } from '@/types/projects';
-import type { PaginatedResponse } from '@/types/common';
+﻿import type { Project } from "@/types/projects";
+import { createSupabasePublicClient } from "@/lib/supabase/public";
 
-// TODO: Connect to Supabase in a later stage. Returns mock data for now.
-
-const mockProjects: Project[] = [
-  {
-    id: '1',
-    title: 'AI Nexus Block',
-    slug: 'ai-nexus-block',
-    description: 'Agentic Knowledge OS & Developer Sandbox for AI tool discovery and engineering documentation.',
-    long_description: 'A comprehensive platform for developers to discover AI tools, document projects, and maintain a living portfolio.',
-    category: 'AI Platform',
-    tags: ['nextjs', 'supabase', 'ai', 'typescript'],
-    image_url: null,
-    live_url: 'https://ainexusblock.com',
-    github_url: 'https://github.com/ai-nexus-block',
-    documentation_url: null,
-    youtube_url: null,
-    is_case_study: true,
-    featured: true,
-    published: true,
-    display_order: 1,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: '2',
-    title: 'DevRoadmap Engine',
-    slug: 'devroadmap-engine',
-    description: 'AI-powered learning roadmap generator for developers.',
-    long_description: 'Generates personalized engineering roadmaps based on skill level and goals.',
-    category: 'Education',
-    tags: ['ai', 'education', 'roadmaps'],
-    image_url: null,
-    live_url: null,
-    github_url: null,
-    documentation_url: null,
-    youtube_url: null,
-    is_case_study: false,
-    featured: true,
-    published: true,
-    display_order: 2,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-  },
-];
-
-export function getProjects(): PaginatedResponse<Project> {
-  return { data: mockProjects, total: mockProjects.length, page: 1, limit: 20, hasMore: false };
+export interface PaginatedResponse<T> {
+  data: T[];
+  count: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
-export function getProjectBySlug(slug: string): Project | null {
-  return mockProjects.find((p) => p.slug === slug) ?? null;
+function mapProject(row: Record<string, any>): Project {
+  const metadata =
+    row.metadata && typeof row.metadata === "object"
+      ? row.metadata
+      : {};
+
+  const now = new Date().toISOString();
+
+  return {
+    id: row.id,
+    created_at: row.created_at ?? metadata.original_created_at ?? now,
+    updated_at: row.updated_at ?? metadata.original_updated_at ?? now,
+    featured: Boolean(row.featured),
+    published: row.status === "published",
+    display_order:
+      typeof metadata.display_order === "number"
+        ? metadata.display_order
+        : 0,
+
+    title: row.title,
+    slug: row.slug,
+    description: row.description ?? "",
+    long_description: row.long_description ?? null,
+
+    category: row.project_type ?? "",
+    tags: Array.isArray(row.tags) ? row.tags : [],
+
+    live_url: row.live_url ?? null,
+    image_url: row.image_url ?? null,
+
+    website_url: row.live_url ?? null,
+    github_url: row.repository_url ?? null,
+    documentation_url: metadata.documentation_url ?? null,
+    youtube_url: metadata.youtube_url ?? null,
+
+    is_case_study: Boolean(metadata.is_case_study),
+  };
 }
 
-export function getFeaturedProjects(): Project[] {
-  return mockProjects.filter((p) => p.featured);
+export async function getProjects(
+  page = 1,
+  pageSize = 50
+): Promise<PaginatedResponse<Project>> {
+  const supabase = createSupabasePublicClient();
+
+  const from = Math.max(0, (page - 1) * pageSize);
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
+    .from("nexus_projects")
+    .select("*", { count: "exact" })
+    .eq("status", "published")
+    .order("featured", { ascending: false })
+    .order("title")
+    .range(from, to);
+
+  if (error) {
+    throw new Error(`Failed to load projects: ${error.message}`);
+  }
+
+  const total = count ?? 0;
+
+  return {
+    data: (data ?? []).map(mapProject),
+    count: total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+export async function getProjectBySlug(
+  slug: string
+): Promise<Project | null> {
+  const supabase = createSupabasePublicClient();
+
+  const { data, error } = await supabase
+    .from("nexus_projects")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load project: ${error.message}`);
+  }
+
+  return data ? mapProject(data) : null;
+}
+
+export async function getFeaturedProjects(): Promise<Project[]> {
+  const supabase = createSupabasePublicClient();
+
+  const { data, error } = await supabase
+    .from("nexus_projects")
+    .select("*")
+    .eq("status", "published")
+    .eq("featured", true)
+    .order("title");
+
+  if (error) {
+    throw new Error(`Failed to load featured projects: ${error.message}`);
+  }
+
+  return (data ?? []).map(mapProject);
 }

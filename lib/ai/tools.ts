@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Nexus AI Assistant — tool protocol.
  *
  * The assistant never emits a command to run. It requests a TYPED tool, and the
@@ -39,6 +39,13 @@ export type ToolName =
   | 'project_read_file'
   | 'project_read_multiple_files'
   | 'project_overview'
+  // website — automatic, read-only
+  | 'read_tools'
+  | 'read_projects'
+  | 'read_knowledge'
+  | 'read_roadmaps'
+  | 'search_internal_website'
+  | 'web_search'
   // write — proposal + approval
   | 'project_create_file'
   | 'project_edit_file'
@@ -59,7 +66,19 @@ export type ToolName =
   | 'git_pull'
   // control
   | 'finish'
-  | 'ask_user';
+  | 'ask_user'
+  | "create_project"
+  | "update_project"
+  | "delete_project"
+  | "create_tool"
+  | "update_tool"
+  | "delete_tool"
+  | "create_knowledge"
+  | "update_knowledge"
+  | "delete_knowledge"
+  | "create_roadmap"
+  | "update_roadmap"
+  | "delete_roadmap";
 
 /** How much consent a tool needs before it can take effect. */
 export type ApprovalLevel =
@@ -121,11 +140,160 @@ export const TOOLS: ToolDefinition[] = [
     asynchronous: false,
   },
   {
+    name: 'read_tools',
+    description:
+      'Read the published AI and developer tools currently listed on AI Nexus Block.',
+    approval: 'automatic',
+    parameters: 'none',
+    asynchronous: false,
+  },
+  {
+    name: 'read_projects',
+    description:
+      'Read the published projects currently listed on AI Nexus Block.',
+    approval: 'automatic',
+    parameters: 'none',
+    asynchronous: false,
+  },
+  {
+    name: 'read_knowledge',
+    description:
+      'Read the published knowledge articles currently stored by AI Nexus Block.',
+    approval: 'automatic',
+    parameters: 'none',
+    asynchronous: false,
+  },
+
+  {
+    name: 'search_internal_website',
+    description:
+      'Search internal published AI Nexus Block tools, projects, knowledge articles, and roadmaps.',
+    approval: 'automatic',
+    parameters:
+      '{ "query": string, "entity"?: "tools" | "projects" | "knowledge" | "roadmaps" | "all" }',
+    asynchronous: false,
+  },
+
+  {
+    name: 'web_search',
+    description:
+      'Search the public web using Tavily when internal Nexus information is insufficient or external real-time information is required.',
+    approval: 'automatic',
+    parameters:
+      '{ "query": string, "maxResults"?: number }',
+    asynchronous: false,
+  },
+  {
+    name: 'read_roadmaps',
+    description:
+      'Read the published learning roadmaps currently listed on AI Nexus Block.',
+    approval: 'automatic',
+    parameters: 'none',
+    asynchronous: false,
+  },
+  {
     name: 'project_create_file',
     description: 'Propose creating a new file. Requires user approval.',
     approval: 'requires_approval',
     parameters: '{ "path": string, "content": string }',
     asynchronous: false,
+  }
+,
+
+  {
+    name: "create_project",
+    description: "Create a Nexus project. Super-admin approval required.",
+    approval: "requires_approval",
+    asynchronous: false,
+    parameters: "{\"type\":\"object\",\"properties\":{\"payload\":{\"type\":\"object\"}},\"required\":[\"payload\"]}"
+  },
+
+  {
+    name: "update_project",
+    description: "Update a Nexus project by id or slug. Super-admin approval required.",
+    approval: "requires_approval",
+    asynchronous: false,
+    parameters: "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"},\"slug\":{\"type\":\"string\"},\"payload\":{\"type\":\"object\"}},\"required\":[\"payload\"]}"
+  },
+
+  {
+    name: "delete_project",
+    description: "Delete a Nexus project by id or slug. User confirmation required.",
+    approval: "requires_confirmation",
+    asynchronous: false,
+    parameters: "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"},\"slug\":{\"type\":\"string\"}}}"
+  },
+
+  {
+    name: "create_tool",
+    description: "Create a Nexus tool. Super-admin approval required.",
+    approval: "requires_approval",
+    asynchronous: false,
+    parameters: "{\"type\":\"object\",\"properties\":{\"payload\":{\"type\":\"object\"}},\"required\":[\"payload\"]}"
+  },
+
+  {
+    name: "update_tool",
+    description: "Update a Nexus tool by id or slug. Super-admin approval required.",
+    approval: "requires_approval",
+    asynchronous: false,
+    parameters: "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"},\"slug\":{\"type\":\"string\"},\"payload\":{\"type\":\"object\"}},\"required\":[\"payload\"]}"
+  },
+
+  {
+    name: "delete_tool",
+    description: "Delete a Nexus tool by id or slug. User confirmation required.",
+    approval: "requires_confirmation",
+    asynchronous: false,
+    parameters: "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"},\"slug\":{\"type\":\"string\"}}}"
+  },
+
+  {
+    name: "create_knowledge",
+    description: "Create Nexus knowledge. Super-admin approval required.",
+    approval: "requires_approval",
+    asynchronous: false,
+    parameters: "{\"type\":\"object\",\"properties\":{\"payload\":{\"type\":\"object\"}},\"required\":[\"payload\"]}"
+  },
+
+  {
+    name: "update_knowledge",
+    description: "Update Nexus knowledge by id or slug. Super-admin approval required.",
+    approval: "requires_approval",
+    asynchronous: false,
+    parameters: "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"},\"slug\":{\"type\":\"string\"},\"payload\":{\"type\":\"object\"}},\"required\":[\"payload\"]}"
+  },
+
+  {
+    name: "delete_knowledge",
+    description: "Delete Nexus knowledge by id or slug. User confirmation required.",
+    approval: "requires_confirmation",
+    asynchronous: false,
+    parameters: "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"},\"slug\":{\"type\":\"string\"}}}"
+  },
+
+  {
+    name: "create_roadmap",
+    description: "Create a Nexus roadmap. Super-admin approval required.",
+    approval: "requires_approval",
+    asynchronous: false,
+    parameters: "{\"type\":\"object\",\"properties\":{\"payload\":{\"type\":\"object\"}},\"required\":[\"payload\"]}"
+  },
+
+  {
+    name: "update_roadmap",
+    description: "Update a Nexus roadmap by id or slug. Super-admin approval required.",
+    approval: "requires_approval",
+    asynchronous: false,
+    parameters: "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"},\"slug\":{\"type\":\"string\"},\"payload\":{\"type\":\"object\"}},\"required\":[\"payload\"]}"
+  },
+
+  {
+    name: "delete_roadmap",
+    description: "Delete a Nexus roadmap by id or slug. User confirmation required.",
+    approval: "requires_confirmation",
+    asynchronous: false,
+    parameters: "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"},\"slug\":{\"type\":\"string\"}}}"
   },
   {
     name: 'project_edit_file',
@@ -337,7 +505,50 @@ export function validateToolCall(raw: unknown): ToolCall {
 
   switch (definition.name) {
     case 'project_list_files':
-    case 'project_overview':
+      break;
+
+    case 'search_internal_website':
+      validated.query = requireString(args, 'query', 200);
+      validated.entity =
+        ['tools', 'projects', 'knowledge', 'roadmaps', 'all'].includes(
+          String(args.entity),
+        )
+          ? args.entity
+          : 'all';
+      break;
+
+    case 'web_search':
+      validated.query = requireString(args, 'query', 500);
+
+      if (args.maxResults !== undefined) {
+        const maxResults = Number(args.maxResults);
+
+        if (!Number.isInteger(maxResults) || maxResults < 1 || maxResults > 10) {
+          throw new InvalidToolCallError(
+            'web_search maxResults must be an integer between 1 and 10',
+          );
+        }
+
+        validated.maxResults = maxResults;
+      } else {
+        validated.maxResults = 5;
+      }
+      break;
+case 'read_tools':
+    case 'read_projects':
+    case 'read_knowledge':
+    case 'read_roadmaps':          case "create_project":
+      case "update_project":
+      case "delete_project":
+      case "create_tool":
+      case "update_tool":
+      case "delete_tool":
+      case "create_knowledge":
+      case "update_knowledge":
+      case "delete_knowledge":
+      case "create_roadmap":
+      case "update_roadmap":
+      case "delete_roadmap":    case 'project_overview':
     case 'test_run':
     case 'build_run':
     case 'typecheck_run':
@@ -550,6 +761,12 @@ export function renderToolCatalogue(): string {
 export function describeToolCall(call: ToolCall): string {
   const a = call.args;
   switch (call.tool) {
+    case 'search_internal_website':
+      return `Searching Nexus website for "${String(call.args.query)}"`;
+
+    case 'web_search':
+      return `Searching the web for "${String(call.args.query)}"`;
+
     case 'project_list_files':
       return 'Listing project files';
     case 'project_overview':
@@ -598,3 +815,14 @@ export function describeToolCall(call: ToolCall): string {
       return call.tool;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
