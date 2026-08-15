@@ -53,7 +53,7 @@ export function FloatingCopilot() {
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
-      const drawer = document.querySelector('.z-\\[100\\]');
+      const drawer = document.querySelector('.z-\\[100\\], .z-\\[90\\]');
       setIsDrawerOpen(Boolean(drawer));
     });
     observer.observe(document.body, { childList: true, subtree: true });
@@ -185,7 +185,7 @@ export function FloatingCopilot() {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 rounded-full bg-gradient-to-r from-primary to-blue-600 px-4 py-3 text-white shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-primary/30 border border-white/20"
+          className="fixed bottom-6 right-6 z-30 flex items-center gap-2.5 rounded-full bg-gradient-to-r from-primary to-blue-600 px-4 py-3 text-white shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-primary/30 border border-white/20"
           aria-label="Open AI Copilot"
         >
           <div className="relative">

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
@@ -26,8 +27,11 @@ interface GatewayCardProps {
 function Gateway3DTiltCard({ card }: { card: GatewayCardProps }) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const rotateX = useTransform(y, [-100, 100], [8, -8]);
-  const rotateY = useTransform(x, [-100, 100], [-8, 8]);
+  const rotateX = useTransform(y, [-100, 100], [12, -12]);
+  const rotateY = useTransform(x, [-100, 100], [-12, 12]);
+
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
 
   const Icon = card.icon;
 
@@ -37,23 +41,40 @@ function Gateway3DTiltCard({ card }: { card: GatewayCardProps }) {
     const mouseY = e.clientY - rect.top - rect.height / 2;
     x.set(mouseX);
     y.set(mouseY);
+    setCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  }
+
+  function handleMouseEnter() {
+    setIsHovered(true);
   }
 
   function handleMouseLeave() {
     x.set(0);
     y.set(0);
+    setIsHovered(false);
   }
 
   return (
     <motion.div
       style={{ perspective: 1000, rotateX, rotateY }}
       onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      transition={{ type: 'spring', stiffness: 250, damping: 20 }}
-      className="group h-full cursor-pointer"
+      transition={{ type: 'spring', stiffness: 280, damping: 18 }}
+      className="group h-full cursor-pointer overflow-hidden rounded-2xl"
     >
       <Link href={card.href} className="block h-full">
-        <div className={`relative h-full rounded-2xl border border-border/60 bg-gradient-to-b ${card.gradient} bg-card p-6 flex flex-col justify-between space-y-4 hover:border-primary/50 shadow-lg hover:shadow-2xl transition-all duration-300`}>
+        <div className={`relative h-full rounded-2xl border border-border/60 bg-gradient-to-b ${card.gradient} bg-card p-6 flex flex-col justify-between space-y-4 hover:border-primary/60 shadow-lg hover:shadow-2xl transition-all duration-300`}>
+          {/* Dynamic Cursor Radial Glow Overlay */}
+          {isHovered && (
+            <div
+              className="pointer-events-none absolute -inset-px rounded-2xl opacity-100 transition-opacity duration-300"
+              style={{
+                background: `radial-gradient(300px circle at ${cursorPos.x}px ${cursorPos.y}px, rgba(59, 130, 246, 0.15), transparent 80%)`,
+              }}
+            />
+          )}
+
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 rounded-xl bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110">

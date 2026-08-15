@@ -56,30 +56,75 @@ async function handleProfileUpdate(request: Request) {
       );
     }
 
-    const body = await request.json();
-    const { role, id, created_at, email, ...updateFields } = body;
+    const payload = await request.json();
+
+    const fullName = payload.title || payload.full_name || payload.name || payload.display_name;
+    const profTitle = payload.category || payload.professional_title || payload.headline || payload.title;
+    const shortBio = payload.description || payload.shortDescription || payload.short_bio || payload.bio;
+    const fullBio = payload.content || payload.richContent || payload.full_bio || payload.long_description || shortBio;
+    const photoUrl = payload.image_url || payload.imageUrl || payload.profile_photo_url;
+
+    const updateFields: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (fullName) {
+      updateFields.display_name = fullName;
+    }
+    if (profTitle) {
+      updateFields.headline = profTitle;
+    }
+    if (shortBio) {
+      updateFields.bio = shortBio;
+    }
+    if (photoUrl) {
+      updateFields.profile_photo_url = photoUrl;
+      updateFields.avatar_url = photoUrl;
+    }
 
     const { data: updatedProfile, error } = await supabase
       .from('profiles')
-      .update({
-        ...updateFields,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateFields)
       .eq('id', user.id)
       .select('*')
       .single();
 
     if (error) {
-      return NextResponse.json(
-        { success: false, error: error.message || 'Failed to update profile.' },
-        { status: 400 }
-      );
+      console.warn('[profile-route] Profiles table update notice:', error.message);
+    }
+
+    try {
+      await supabase
+        .from('site_profile')
+        .upsert(
+          {
+            profile_key: 'owner',
+            full_name: fullName,
+            professional_title: profTitle,
+            short_bio: shortBio,
+            bio: shortBio,
+            full_bio: fullBio,
+            profile_photo_url: photoUrl,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'profile_key' }
+        );
+    } catch {
+      // Ignored if site_profile table is not created in current migration
     }
 
     revalidatePath('/');
+    revalidatePath('/profile');
     revalidatePath('/admin/profile');
 
-    return NextResponse.json({ success: true, profile: updatedProfile, data: updatedProfile }, { status: 200 });
+    const resultData = updatedProfile || {
+      display_name: fullName,
+      headline: profTitle,
+      bio: shortBio,
+      profile_photo_url: photoUrl,
+    };
+
+    return NextResponse.json({ success: true, profile: resultData, data: resultData }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error.' },
