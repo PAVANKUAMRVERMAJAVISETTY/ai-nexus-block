@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,7 @@ export async function GET() {
 
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Unauthenticated request.' },
+        { success: false, error: 'Unauthenticated request.' },
         { status: 401 }
       );
     }
@@ -26,21 +27,21 @@ export async function GET() {
 
     if (error) {
       return NextResponse.json(
-        { error: 'Profile not found.' },
+        { success: false, error: 'Profile not found.' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ profile });
+    return NextResponse.json({ success: true, profile, data: profile }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message || 'Internal server error.' },
+      { success: false, error: error.message || 'Internal server error.' },
       { status: 500 }
     );
   }
 }
 
-export async function PATCH(request: Request) {
+async function handleProfileUpdate(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
     const {
@@ -50,14 +51,12 @@ export async function PATCH(request: Request) {
 
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Unauthenticated request.' },
+        { success: false, error: 'Unauthenticated request.' },
         { status: 401 }
       );
     }
 
     const body = await request.json();
-
-    // Prevent role updates through user profile PATCH endpoint
     const { role, id, created_at, email, ...updateFields } = body;
 
     const { data: updatedProfile, error } = await supabase
@@ -72,16 +71,31 @@ export async function PATCH(request: Request) {
 
     if (error) {
       return NextResponse.json(
-        { error: error.message || 'Failed to update profile.' },
+        { success: false, error: error.message || 'Failed to update profile.' },
         { status: 400 }
       );
     }
 
-    return NextResponse.json({ profile: updatedProfile });
+    revalidatePath('/');
+    revalidatePath('/admin/profile');
+
+    return NextResponse.json({ success: true, profile: updatedProfile, data: updatedProfile }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message || 'Internal server error.' },
+      { success: false, error: error.message || 'Internal server error.' },
       { status: 500 }
     );
   }
+}
+
+export async function PATCH(request: Request) {
+  return handleProfileUpdate(request);
+}
+
+export async function PUT(request: Request) {
+  return handleProfileUpdate(request);
+}
+
+export async function POST(request: Request) {
+  return handleProfileUpdate(request);
 }

@@ -87,9 +87,10 @@ interface AdminEditButtonProps {
   className?: string;
   variant?: 'outline' | 'ghost' | 'default' | 'secondary';
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  onSuccess?: () => void;
 }
 
-export function AdminEditButton({ entityType, item, className = '', variant = 'outline', size = 'sm' }: AdminEditButtonProps) {
+export function AdminEditButton({ entityType, item, className = '', variant = 'outline', size = 'sm', onSuccess }: AdminEditButtonProps) {
   const { isSuperAdmin, openEditModal } = useAdmin();
 
   if (!isSuperAdmin) return null;

@@ -258,7 +258,8 @@ export function InlineEntityEditorDrawer({
         body: JSON.stringify(payload),
       });
 
-      const result = await res.json();
+      const text = await res.text();
+      const result = text ? JSON.parse(text) : {};
       if (!res.ok) throw new Error(result.error || 'Failed to save entry');
 
       onSuccess?.();
@@ -271,7 +272,7 @@ export function InlineEntityEditorDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm transition-opacity">
+    <div className="fixed inset-0 z-[100] flex justify-end bg-black/60 backdrop-blur-sm transition-opacity">
       <div className="relative w-full max-w-2xl bg-card border-l border-border h-full shadow-2xl flex flex-col overflow-hidden text-card-foreground">
         {/* Drawer Header */}
         <div className="flex items-center justify-between border-b border-border/60 p-4 bg-muted/30">

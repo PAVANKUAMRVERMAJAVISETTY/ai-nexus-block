@@ -48,8 +48,17 @@ export function FloatingCopilot() {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const drawer = document.querySelector('.z-\\[100\\]');
+      setIsDrawerOpen(Boolean(drawer));
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!isSuperAdmin) {
@@ -167,6 +176,8 @@ export function FloatingCopilot() {
     }
   };
 
+  if (isDrawerOpen) return null;
+
   return (
     <>
       {/* Floating Launcher Button */}
@@ -174,7 +185,7 @@ export function FloatingCopilot() {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-full bg-gradient-to-r from-primary to-blue-600 px-4 py-3 text-white shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-primary/30 border border-white/20"
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 rounded-full bg-gradient-to-r from-primary to-blue-600 px-4 py-3 text-white shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-primary/30 border border-white/20"
           aria-label="Open AI Copilot"
         >
           <div className="relative">
@@ -191,7 +202,7 @@ export function FloatingCopilot() {
       {/* Floating Chat Window */}
       {isOpen && (
         <div
-          className={`fixed z-50 transition-all duration-300 flex flex-col bg-card border border-border/80 shadow-2xl rounded-2xl overflow-hidden ${
+          className={`fixed z-40 transition-all duration-300 flex flex-col bg-card border border-border/80 shadow-2xl rounded-2xl overflow-hidden ${
             isExpanded
               ? 'bottom-4 right-4 left-4 top-4 md:left-auto md:w-[680px] md:h-[680px]'
               : 'bottom-6 right-6 w-[92vw] sm:w-[440px] h-[600px]'
