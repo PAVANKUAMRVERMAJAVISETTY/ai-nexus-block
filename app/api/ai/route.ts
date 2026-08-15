@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import {
   buildNexusRuntimeContext,
   serializeNexusRuntimeContext,
@@ -15,6 +15,7 @@ import { advanceSession, createSessionState, continueSession, resumeAfterInput, 
 import { executeInternalWebsiteSearchTool } from '@/lib/ai/internal-search-tool';
 import { searchInternalWebsite } from '@/services/internal-search';
 import { webSearch } from '@/services/web-search';
+import { handleAIToolMutation } from '@/services/ai/agentTools';
 
 export async function POST(request: Request) {
   try {
@@ -126,7 +127,7 @@ export async function POST(request: Request) {
     // 3. Fetch optional user profile context for AI personalization
     const { data: userProfile } = await supabase
       .from('profiles')
-      .select('display_name, education_level, degree, specialization, experience_level, skills, target_roles, learning_goals')
+      .select('display_name, education_level, degree, specialization, experience_level, skills, target_roles, learning_goals, role')
       .eq('id', user.id)
       .single();
 
@@ -239,8 +240,8 @@ const systemPrompt = [
   `You are the public AI Nexus Assistant.`,
   ``,
   `PUBLIC AGENT POLICY:`,
-  `- You have exactly two public tools: search_internal_website and web_search.`,
-  `- These are the ONLY tools available in this public assistant.`,
+  `- You have tools: search_internal_website, web_search, create_tool, and create_project.`,
+  `- When instructed to add or create a tool/project, use create_tool or create_project.`,
   `- Never mention or request IDE tools.`,
   `- Never invent Nexus website content.`,
   `- For Nexus website questions, ALWAYS use search_internal_website before answering.`,
@@ -318,6 +319,24 @@ const publicPorts: AgentPorts = {
                 : 'Web search failed.',
           };
         }
+      }
+
+      case 'create_tool': {
+        const role = userProfile?.role || 'user';
+        const res = await handleAIToolMutation('create_tool', call.args, role);
+        return {
+          ok: res.success,
+          content: res.success ? (res.message || 'Tool created successfully.') : (res.error || 'Failed to create tool.'),
+        };
+      }
+
+      case 'create_project': {
+        const role = userProfile?.role || 'user';
+        const res = await handleAIToolMutation('create_project', call.args, role);
+        return {
+          ok: res.success,
+          content: res.success ? (res.message || 'Project created successfully.') : (res.error || 'Failed to create project.'),
+        };
       }
 
       default: {

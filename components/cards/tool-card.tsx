@@ -10,26 +10,34 @@ interface ToolCardProps {
 }
 
 export function ToolCard({ tool }: ToolCardProps) {
+  const toolName = tool.name || (tool as any).title || 'Tool';
+  const pricingStr =
+    typeof tool.pricing === 'string'
+      ? tool.pricing
+      : (tool.pricing as any)?.value || 'freemium';
+
+  const tagsList = Array.isArray(tool.tags) ? tool.tags : [];
+
   return (
     <Card className="relative h-full flex flex-col justify-between border-border/40 transition-all hover:border-border/80 hover:shadow-lg">
-      <Link href={`/tools/${tool.slug}`} className="block flex-1">
+      <Link href={`/tools/${tool.slug || tool.id}`} className="block flex-1">
         <CardHeader className="flex flex-row items-center gap-3 pb-3 pr-12">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary text-sm font-bold">
-            {tool.name.charAt(0)}
+            {toolName.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-semibold leading-tight truncate">{tool.name}</h3>
-            <p className="text-xs text-muted-foreground truncate">{tool.category}</p>
+            <h3 className="text-base font-semibold leading-tight truncate">{toolName}</h3>
+            <p className="text-xs text-muted-foreground truncate">{tool.category || 'AI Tool'}</p>
           </div>
           <Badge variant="outline" className="text-xs capitalize shrink-0">
-            {tool.pricing}
+            {pricingStr}
           </Badge>
         </CardHeader>
 
         <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground line-clamp-2">{tool.description}</p>
+          <p className="text-sm text-muted-foreground line-clamp-2">{tool.description || ''}</p>
           <div className="flex flex-wrap gap-1.5">
-            {tool.tags.slice(0, 3).map((tag) => (
+            {tagsList.slice(0, 3).map((tag) => (
               <Badge key={tag} variant="secondary" className="text-xs">
                 {tag}
               </Badge>

@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { X, Upload, Loader2, FileText, Database, Archive, Video, Image as ImageIcon } from 'lucide-react';
 
-export type EntityType = 'projects' | 'tools' | 'knowledge' | 'resources' | 'decisions' | 'roadmaps' | 'journey';
+export type EntityType = 'projects' | 'tools' | 'knowledge' | 'resources' | 'decisions' | 'roadmaps' | 'journey' | 'profile';
 
 interface EntryEditModalProps {
   isOpen: boolean;

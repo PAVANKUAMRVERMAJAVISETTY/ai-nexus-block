@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { PageContainer, PageHeader, EmptyState } from '@/components/common';
 import { ProjectCard } from '@/components/cards';
 import { AdminWrapper } from '@/components/admin';
-import { FolderGit2, Sparkles } from 'lucide-react';
+import { FolderGit2 } from 'lucide-react';
 import type { Project } from '@/types/projects';
 
 const filterTabs = [
@@ -32,10 +32,15 @@ export default function ProjectsPage() {
 
   const filteredProjects = projects.filter((p) => {
     if (activeTab === '#All') return true;
-    const cleanTab = activeTab.replace('#', '').toLowerCase();
-    const cat = (p.category || '').toLowerCase();
-    const tags = (p.tags || []).map((t) => t.toLowerCase());
-    return cat.includes(cleanTab) || tags.some((t) => t.includes(cleanTab));
+    const cleanTab = activeTab.replace('#', '').toLowerCase().trim();
+    const cat = (p.category || '').toLowerCase().trim();
+    const tags = (p.tags ?? []).map((t) => t.toLowerCase().trim());
+    return (
+      cat === cleanTab ||
+      cat.includes(cleanTab) ||
+      cleanTab.includes(cat) ||
+      tags.some((t) => t.includes(cleanTab) || cleanTab.includes(t))
+    );
   });
 
   return (

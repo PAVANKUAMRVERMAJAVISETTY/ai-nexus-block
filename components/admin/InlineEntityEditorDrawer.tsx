@@ -63,6 +63,7 @@ export function InlineEntityEditorDrawer({
     decisions: ['Accepted', 'Proposed', 'Deprecated', 'Superseded', 'Architecture'],
     roadmaps: ['Full-Stack AI', 'Frontend Performance', 'Database Architecture', 'DevOps & Cloud'],
     journey: ['Project Milestone', 'Learning Achievement', 'Career Upgrade', 'Platform Launch'],
+    profile: ['Executive Bio', 'Systems Architect', 'Full Stack AI', 'Lead Developer'],
   };
 
   useEffect(() => {
