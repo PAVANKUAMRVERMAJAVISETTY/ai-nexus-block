@@ -113,7 +113,7 @@ export function CommandPalette() {
               <div className="flex items-center gap-2.5">
                 <Bot className="h-5 w-5" />
                 <span className="text-xs font-bold">
-                  Ask AI Assistant: <code className="text-foreground font-normal font-mono">"{aiQuery || '...'}"</code>
+                  Ask AI Assistant: <code className="text-foreground font-normal font-mono">&quot;{aiQuery || '...'}&quot;</code>
                 </span>
               </div>
               <ArrowRight className="h-4 w-4" />
@@ -152,7 +152,7 @@ export function CommandPalette() {
               ))
             ) : (
               <div className="p-6 text-center text-xs text-muted-foreground">
-                No catalog items found matching "{query}". Type <code className="text-primary">&gt; query</code> to ask AI Assistant.
+                No catalog items found matching &quot;{query}&quot;. Type <code className="text-primary">&gt; query</code> to ask AI Assistant.
               </div>
             )}
           </div>

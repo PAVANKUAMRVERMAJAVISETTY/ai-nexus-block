@@ -151,7 +151,7 @@ export default async function ToolDetailPage({
             {/* Author's Review */}
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-6 space-y-2">
               <h3 className="text-sm font-bold text-primary uppercase tracking-wider">
-                Author's Review & Assessment
+                Author&apos;s Review &amp; Assessment
               </h3>
               <p className="text-sm text-foreground leading-relaxed">
                 {tool.description} Built for modern full-stack workflows with rapid execution speed and high scalability.
@@ -162,7 +162,7 @@ export default async function ToolDetailPage({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-3">
                 <h3 className="text-sm font-bold text-emerald-500 flex items-center gap-1.5">
-                  <ThumbsUp className="h-4 w-4" /> Key Pros & Advantages
+                  <ThumbsUp className="h-4 w-4" /> Key Pros &amp; Advantages
                 </h3>
                 <ul className="text-xs text-muted-foreground space-y-2">
                   <li className="flex items-start gap-2">
@@ -178,7 +178,7 @@ export default async function ToolDetailPage({
 
               <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-5 space-y-3">
                 <h3 className="text-sm font-bold text-rose-500 flex items-center gap-1.5">
-                  <ThumbsDown className="h-4 w-4" /> Considerations & Cons
+                  <ThumbsDown className="h-4 w-4" /> Considerations &amp; Cons
                 </h3>
                 <ul className="text-xs text-muted-foreground space-y-2">
                   <li className="flex items-start gap-2">
@@ -191,7 +191,7 @@ export default async function ToolDetailPage({
 
             {/* Step-by-Step How To Use Guide */}
             <div className="rounded-xl border border-border/60 bg-card p-6 space-y-4">
-              <h3 className="text-base font-bold">Step-by-Step "How to Use" Guide</h3>
+              <h3 className="text-base font-bold">Step-by-Step &quot;How to Use&quot; Guide</h3>
               <ol className="text-xs text-muted-foreground space-y-3 list-decimal list-inside leading-relaxed">
                 <li>Explore the official documentation or GitHub repository linked above.</li>
                 <li>Configure environment variables in your local `.env.local` file.</li>
