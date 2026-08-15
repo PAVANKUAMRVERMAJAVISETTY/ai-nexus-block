@@ -76,7 +76,7 @@ export function CodeEditor({
   path,
   value,
   language,
-  readOnly,
+  readOnly = true,
   problems = [],
   onChange,
   onSave,

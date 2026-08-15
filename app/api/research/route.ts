@@ -31,7 +31,17 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({ research: research || [] });
+    const mappedResearch = (research || []).map((row: any) => ({
+      ...row,
+      opinion: row.user_opinion ?? row.opinion ?? null,
+      user_opinion: row.user_opinion ?? row.opinion ?? null,
+      personal_notes: row.user_notes ?? row.personal_notes ?? null,
+      user_notes: row.user_notes ?? row.personal_notes ?? null,
+      url: row.source_url ?? row.url ?? null,
+      source_url: row.source_url ?? row.url ?? null,
+    }));
+
+    return NextResponse.json({ research: mappedResearch });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Internal server error.' },
@@ -56,7 +66,21 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { title, category = 'general', url, summary, personal_notes, opinion, pros = [], cons = [], pricing_info, tags = [] } = body;
+    const {
+      title,
+      category = 'general',
+      url,
+      source_url,
+      summary,
+      personal_notes,
+      user_notes,
+      opinion,
+      user_opinion,
+      pros = [],
+      cons = [],
+      pricing_info,
+      tags = [],
+    } = body;
 
     if (!title || typeof title !== 'string' || !title.trim()) {
       return NextResponse.json(
@@ -65,32 +89,73 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: newResearch, error } = await supabase
+    const finalSourceUrl = source_url || url || null;
+    const finalUserNotes = user_notes || personal_notes || null;
+    const finalUserOpinion = user_opinion || opinion || null;
+
+    const payloadPrimary: Record<string, any> = {
+      user_id: user.id,
+      title: title.trim(),
+      category,
+      source_url: finalSourceUrl,
+      summary: summary || null,
+      user_notes: finalUserNotes,
+      user_opinion: finalUserOpinion,
+      pros,
+      cons,
+      pricing_info: pricing_info || null,
+      tags,
+    };
+
+    let { data: newResearch, error } = await supabase
       .from('user_research')
-      .insert({
-        user_id: user.id,
-        title: title.trim(),
-        category,
-        url,
-        summary,
-        personal_notes,
-        opinion,
-        pros,
-        cons,
-        pricing_info,
-        tags,
-      })
+      .insert(payloadPrimary)
       .select('*')
       .single();
 
     if (error) {
-      return NextResponse.json(
-        { error: error.message || 'Failed to create research record.' },
-        { status: 400 }
-      );
+      // Fallback mapping if schema expects 'opinion' / 'personal_notes' / 'url'
+      const payloadFallback: Record<string, any> = {
+        user_id: user.id,
+        title: title.trim(),
+        category,
+        source_url: finalSourceUrl,
+        url: finalSourceUrl,
+        summary: summary || null,
+        personal_notes: finalUserNotes,
+        opinion: finalUserOpinion,
+        pros,
+        cons,
+        pricing_info: pricing_info || null,
+        tags,
+      };
+
+      const retryRes = await supabase
+        .from('user_research')
+        .insert(payloadFallback)
+        .select('*')
+        .single();
+
+      if (retryRes.error) {
+        return NextResponse.json(
+          { error: retryRes.error.message || 'Failed to create research record.' },
+          { status: 400 }
+        );
+      }
+      newResearch = retryRes.data;
     }
 
-    return NextResponse.json({ research: newResearch });
+    const mapped = {
+      ...newResearch,
+      opinion: newResearch.user_opinion ?? newResearch.opinion ?? null,
+      user_opinion: newResearch.user_opinion ?? newResearch.opinion ?? null,
+      personal_notes: newResearch.user_notes ?? newResearch.personal_notes ?? null,
+      user_notes: newResearch.user_notes ?? newResearch.personal_notes ?? null,
+      url: newResearch.source_url ?? newResearch.url ?? null,
+      source_url: newResearch.source_url ?? newResearch.url ?? null,
+    };
+
+    return NextResponse.json({ research: mapped });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Internal server error.' },
@@ -115,7 +180,7 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { id, user_id, created_at, ...updateFields } = body;
+    const { id, user_id, created_at, opinion, personal_notes, url, ...updateFields } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -124,10 +189,24 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const { data: updatedResearch, error } = await supabase
+    const patchPayload: Record<string, any> = { ...updateFields };
+    if (opinion !== undefined || updateFields.user_opinion !== undefined) {
+      patchPayload.user_opinion = updateFields.user_opinion ?? opinion;
+      patchPayload.opinion = updateFields.user_opinion ?? opinion;
+    }
+    if (personal_notes !== undefined || updateFields.user_notes !== undefined) {
+      patchPayload.user_notes = updateFields.user_notes ?? personal_notes;
+      patchPayload.personal_notes = updateFields.user_notes ?? personal_notes;
+    }
+    if (url !== undefined || updateFields.source_url !== undefined) {
+      patchPayload.source_url = updateFields.source_url ?? url;
+      patchPayload.url = updateFields.source_url ?? url;
+    }
+
+    let { data: updatedResearch, error } = await supabase
       .from('user_research')
       .update({
-        ...updateFields,
+        ...patchPayload,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
@@ -135,14 +214,43 @@ export async function PATCH(request: Request) {
       .select('*')
       .single();
 
-    if (error || !updatedResearch) {
-      return NextResponse.json(
-        { error: 'Research record not found or update unauthorized.' },
-        { status: 404 }
-      );
+    if (error) {
+      // Retry stripped payload if column mismatch occurs
+      delete patchPayload.opinion;
+      delete patchPayload.personal_notes;
+      delete patchPayload.url;
+
+      const retryRes = await supabase
+        .from('user_research')
+        .update({
+          ...patchPayload,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select('*')
+        .single();
+
+      if (retryRes.error || !retryRes.data) {
+        return NextResponse.json(
+          { error: 'Research record not found or update unauthorized.' },
+          { status: 404 }
+        );
+      }
+      updatedResearch = retryRes.data;
     }
 
-    return NextResponse.json({ research: updatedResearch });
+    const mapped = {
+      ...updatedResearch,
+      opinion: updatedResearch.user_opinion ?? updatedResearch.opinion ?? null,
+      user_opinion: updatedResearch.user_opinion ?? updatedResearch.opinion ?? null,
+      personal_notes: updatedResearch.user_notes ?? updatedResearch.personal_notes ?? null,
+      user_notes: updatedResearch.user_notes ?? updatedResearch.personal_notes ?? null,
+      url: updatedResearch.source_url ?? updatedResearch.url ?? null,
+      source_url: updatedResearch.source_url ?? updatedResearch.url ?? null,
+    };
+
+    return NextResponse.json({ research: mapped });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Internal server error.' },

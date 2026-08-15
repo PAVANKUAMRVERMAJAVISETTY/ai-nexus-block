@@ -161,10 +161,9 @@ export default function IdeLauncherPage() {
 
       <main className="mx-auto max-w-6xl px-6 py-10">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Your projects</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Project Case Studies</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            A browser workspace with a real editor, your own local terminal agent, and an assistant
-            that has read your code.
+            A lightweight, read-only project case-study viewer — explore codebases, architectural patterns, and implementation code.
           </p>
         </div>
 

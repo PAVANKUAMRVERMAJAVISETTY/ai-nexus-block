@@ -1,6 +1,8 @@
 import { PublicHeader } from './public-header';
 import { PublicFooter } from './public-footer';
 import { AboutMeWidget } from '@/components/public/AboutMeWidget';
+import { FloatingCopilot } from '@/components/ai/FloatingCopilot';
+import { CommandPalette } from '@/components/common';
 
 export function PublicShell({ children }: { children: React.ReactNode }) {
   return (
@@ -9,6 +11,8 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1">{children}</main>
       <PublicFooter />
       <AboutMeWidget />
+      <FloatingCopilot />
+      <CommandPalette />
     </div>
   );
 }

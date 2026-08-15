@@ -27,6 +27,10 @@ export interface Categorizable {
 export interface MediaLinks {
   image_url?: string | null;
   logo_url?: string | null;
+  pdf_url?: string | null;
+  sql_url?: string | null;
+  zip_file_url?: string | null;
+  video_url?: string | null;
 }
 
 export interface SocialLinks {

@@ -1,33 +1,81 @@
-﻿import { PageContainer, PageHeader, EmptyState } from '@/components/common';
-import { ToolCard } from '@/components/cards';
-import { getTools } from '@/services/tools';
-import { Wrench } from 'lucide-react';
+'use client';
 
-export default async function ToolsPage() {
-  const { data: tools } = await getTools();
+import { useState, useEffect } from 'react';
+import { PageContainer, PageHeader, EmptyState } from '@/components/common';
+import { ToolCard } from '@/components/cards';
+import { AdminWrapper } from '@/components/admin';
+import { Wrench } from 'lucide-react';
+import type { Tool } from '@/types/tools';
+
+const pricingFilters = ['#All', '#Free', '#Freemium', '#Paid'];
+
+export default function ToolsPage() {
+  const [tools, setTools] = useState<Tool[]>([]);
+  const [activePricing, setActivePricing] = useState('#All');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/tools')
+      .then((res) => res.json())
+      .then((json) => setTools(json.data || []))
+      .catch(() => setTools([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filteredTools = tools.filter((tool) => {
+    if (activePricing === '#All') return true;
+    const cleanFilter = activePricing.replace('#', '').toLowerCase();
+    const pricingStr = typeof tool.pricing === 'string' ? tool.pricing : (tool.pricing as any)?.value || '';
+    return pricingStr.toLowerCase() === cleanFilter;
+  });
 
   return (
     <PageContainer>
-      <PageHeader
-        title="AI Tools"
-        description="A curated catalog of AI and developer tools with pricing, categories, and recommendations."
-      />
+      <AdminWrapper entityType="tools">
+        <PageHeader
+          title="AI Tools & Directory"
+          description="A curated catalog of AI and developer tools with educational breakdowns, pricing models, and step-by-step guides."
+        />
 
-      <div className="mt-8">
-        {tools.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {tools.map((tool) => (
-              <ToolCard key={tool.id} tool={tool} />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            icon={<Wrench className="h-10 w-10" />}
-            title="No tools yet"
-            description="AI tools will appear here once published."
-          />
-        )}
-      </div>
+        {/* Pricing Filter Tabs */}
+        <div className="mt-6 flex flex-wrap gap-2 border-b border-border/40 pb-4">
+          {pricingFilters.map((pFilter) => (
+            <button
+              key={pFilter}
+              onClick={() => setActivePricing(pFilter)}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-full border transition-all ${
+                activePricing === pFilter
+                  ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                  : 'bg-muted/30 text-muted-foreground hover:bg-muted border-border/50'
+              }`}
+            >
+              {pFilter}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-8">
+          {loading ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-pulse">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="h-48 rounded-xl bg-muted/40" />
+              ))}
+            </div>
+          ) : filteredTools.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredTools.map((tool) => (
+                <ToolCard key={tool.id} tool={tool} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={<Wrench className="h-10 w-10" />}
+              title="No tools found"
+              description="No tools match the selected pricing filter."
+            />
+          )}
+        </div>
+      </AdminWrapper>
     </PageContainer>
   );
 }

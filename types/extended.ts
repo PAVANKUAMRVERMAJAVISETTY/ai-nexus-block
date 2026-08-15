@@ -24,26 +24,7 @@ export interface ResourceFormData {
   display_order: number;
 }
 
-export interface JourneyEntry extends FeaturedEntity, Taggable, MediaLinks {
-  title: string;
-  slug: string;
-  description: string;
-  entry_date: string;
-  milestone_type: 'project' | 'learning' | 'career' | 'achievement' | 'other';
-}
-
-export interface JourneyEntryFormData {
-  title: string;
-  slug: string;
-  description: string;
-  entry_date: string;
-  milestone_type: JourneyEntry['milestone_type'];
-  tags: string;
-  image_url: string;
-  featured: boolean;
-  published: boolean;
-  display_order: number;
-}
+export type { JourneyEntry, JourneyEntryFormData } from './journey';
 
 export interface EngineeringDecision extends FeaturedEntity, Taggable {
   title: string;

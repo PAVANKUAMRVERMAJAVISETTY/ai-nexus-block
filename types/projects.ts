@@ -19,6 +19,7 @@ export interface Project extends FeaturedEntity, Taggable, Categorizable, MediaL
   description: string;
   long_description: string | null;
   live_url: string | null;
+  zip_file_url?: string | null;
   is_case_study: boolean;
 }
 
@@ -31,6 +32,7 @@ export interface ProjectFormData {
   tags: string;
   image_url: string;
   live_url: string;
+  zip_file_url?: string;
   github_url: string;
   documentation_url: string;
   youtube_url: string;

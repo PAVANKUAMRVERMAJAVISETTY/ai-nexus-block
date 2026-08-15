@@ -362,87 +362,15 @@ export function IdeWorkspace({ projectId }: { projectId: string }) {
 
         <div className="h-4 w-px bg-border/60" />
 
-        {/* Run controls */}
-        <div className="flex items-center gap-0.5">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1.5 px-2 text-xs"
-            disabled={!runnable.dev}
-            onClick={() => runnable.dev && runScript(runnable.dev)}
-            title={runnable.dev ? `npm run ${runnable.dev}` : 'No dev script in package.json'}
-          >
-            <Play className="h-3.5 w-3.5 text-emerald-400" />
-            Run
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1.5 px-2 text-xs"
-            disabled={!runnable.build}
-            onClick={() => runnable.build && runScript(runnable.build)}
-            title={runnable.build ? `npm run ${runnable.build}` : 'No build script in package.json'}
-          >
-            <Hammer className="h-3.5 w-3.5 text-sky-400" />
-            Build
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1.5 px-2 text-xs"
-            disabled={!runnable.test}
-            onClick={() => runnable.test && runScript(runnable.test)}
-            title={runnable.test ? `npm run ${runnable.test}` : 'No test script in package.json'}
-          >
-            <TestTube2 className="h-3.5 w-3.5 text-violet-400" />
-            Test
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1.5 px-2 text-xs"
-            disabled={!runnable.typecheck}
-            onClick={() => runnable.typecheck && runScript(runnable.typecheck)}
-            title={
-              runnable.typecheck
-                ? `npm run ${runnable.typecheck}`
-                : 'No typecheck script in package.json'
-            }
-          >
-            <Bug className="h-3.5 w-3.5 text-amber-400" />
-            Typecheck
-          </Button>
+        {/* Case Study Read-Only Badge */}
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="text-[11px] font-medium bg-muted/60 text-muted-foreground border-border/40">
+            Read-Only Case Study Viewer
+          </Badge>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
-          {dirtyCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 gap-1.5 px-2 text-xs"
-              onClick={workspace.saveAll}
-            >
-              <Save className="h-3.5 w-3.5" />
-              Save all ({dirtyCount})
-            </Button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setPairingOpen(true)}
-            className={cn(
-              'flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] transition-colors',
-              workspace.agentStatus?.connected
-                ? 'border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10'
-                : 'border-border/60 text-muted-foreground hover:bg-accent'
-            )}
-            title="Nexus Local Development Agent"
-          >
-            <CircleDot
-              className={cn('h-3 w-3', workspace.agentStatus?.connected && 'animate-pulse')}
-            />
-            {workspace.agentStatus?.connected ? 'Agent connected' : 'No agent'}
-          </button>
+        <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="text-[11px] italic">Explore structure & source code</span>
         </div>
       </header>
 

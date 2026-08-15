@@ -1,4 +1,4 @@
-﻿import type { Project } from "@/types/projects";
+import type { Project } from "@/types/projects";
 import { createSupabasePublicClient } from "@/lib/supabase/public";
 
 export interface PaginatedResponse<T> {
@@ -37,6 +37,7 @@ function mapProject(row: Record<string, any>): Project {
     tags: Array.isArray(row.tags) ? row.tags : [],
 
     live_url: row.live_url ?? null,
+    zip_file_url: row.zip_file_url ?? metadata.zip_file_url ?? null,
     image_url: row.image_url ?? null,
 
     website_url: row.live_url ?? null,

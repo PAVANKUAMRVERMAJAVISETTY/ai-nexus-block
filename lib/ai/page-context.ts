@@ -1,4 +1,4 @@
-﻿import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type PageType =
   | "home"
@@ -68,7 +68,7 @@ export async function getPageContext(pathname?: string): Promise<PageContext> {
       const supabase = await createSupabaseServerClient();
       const { data } = await supabase
         .from("nexus_projects")
-        .select("id,name,slug")
+        .select("id,title,slug")
         .eq("slug", parts[1])
         .maybeSingle();
 
@@ -78,7 +78,7 @@ export async function getPageContext(pathname?: string): Promise<PageContext> {
         entityType: "project",
         entitySlug: parts[1],
         entityId: data?.id,
-        title: data?.name ?? parts[1],
+        title: data?.title ?? parts[1],
       };
     }
 

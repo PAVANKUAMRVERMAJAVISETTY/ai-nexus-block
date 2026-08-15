@@ -224,7 +224,7 @@ export default function ResearchPage() {
                     </CardTitle>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge variant="secondary" className="text-[10px] uppercase tracking-wider">
-                        {item.category.replace('_', ' ')}
+                        {item.category ? item.category.replace('_', ' ') : 'General'}
                       </Badge>
                       {item.pricing_info && (
                         <Badge variant="outline" className="text-[10px] flex items-center gap-0.5">
@@ -283,25 +283,25 @@ export default function ResearchPage() {
                 {/* PROS & CONS */}
                 {((item.pros && item.pros.length > 0) || (item.cons && item.cons.length > 0)) && (
                   <div className="grid grid-cols-2 gap-2 pt-1">
-                    {item.pros && item.pros.length > 0 && (
+                    {item.pros && (
                       <div className="space-y-1">
                         <p className="text-[10px] font-semibold text-emerald-500 flex items-center gap-1">
                           <ThumbsUp className="h-3 w-3" /> Pros
                         </p>
                         <ul className="text-[10px] text-muted-foreground list-disc list-inside space-y-0.5">
-                          {item.pros.map((p, idx) => (
+                          {(Array.isArray(item.pros) ? item.pros : [item.pros]).map((p: string, idx: number) => (
                             <li key={idx}>{p}</li>
                           ))}
                         </ul>
                       </div>
                     )}
-                    {item.cons && item.cons.length > 0 && (
+                    {item.cons && (
                       <div className="space-y-1">
                         <p className="text-[10px] font-semibold text-rose-500 flex items-center gap-1">
                           <ThumbsDown className="h-3 w-3" /> Cons
                         </p>
                         <ul className="text-[10px] text-muted-foreground list-disc list-inside space-y-0.5">
-                          {item.cons.map((c, idx) => (
+                          {(Array.isArray(item.cons) ? item.cons : [item.cons]).map((c: string, idx: number) => (
                             <li key={idx}>{c}</li>
                           ))}
                         </ul>

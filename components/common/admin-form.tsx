@@ -12,12 +12,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 export interface AdminFormField {
   name: string;
   label: string;
-  type: 'text' | 'textarea' | 'number' | 'url' | 'select' | 'switch' | 'tags';
+  type: 'text' | 'textarea' | 'number' | 'url' | 'select' | 'switch' | 'tags' | 'file';
   placeholder?: string;
   options?: { value: string; label: string }[];
   defaultValue?: string | number | boolean;
   required?: boolean;
   full?: boolean;
+  uploadEndpoint?: string;
+  accept?: string;
 }
 
 interface AdminFormProps {
@@ -28,6 +30,7 @@ interface AdminFormProps {
 }
 
 export function AdminForm({ title, description, fields, onSubmit }: AdminFormProps) {
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, unknown>>(() => {
     const initial: Record<string, unknown> = {};
     fields.forEach((f) => {
@@ -43,6 +46,30 @@ export function AdminForm({ title, description, fields, onSubmit }: AdminFormPro
 
   const updateField = (name: string, value: unknown) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileUpload = async (fieldName: string, endpoint: string, file: File) => {
+    setUploadingField(fieldName);
+    try {
+      const data = new FormData();
+      data.append('file', file);
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        body: data,
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Upload failed');
+
+      if (result.url) {
+        updateField(fieldName, result.url);
+      }
+    } catch (err: any) {
+      alert(err.message || 'File upload failed');
+    } finally {
+      setUploadingField(null);
+    }
   };
 
   return (
@@ -95,6 +122,28 @@ export function AdminForm({ title, description, fields, onSubmit }: AdminFormPro
                           ))}
                         </SelectContent>
                       </Select>
+                    ) : field.type === 'file' ? (
+                      <div className="space-y-2">
+                        <Input
+                          id={field.name}
+                          type="file"
+                          accept={field.accept || '.zip'}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file && field.uploadEndpoint) {
+                              handleFileUpload(field.name, field.uploadEndpoint, file);
+                            }
+                          }}
+                        />
+                        {uploadingField === field.name && (
+                          <p className="text-xs text-muted-foreground animate-pulse">Uploading file to storage bucket...</p>
+                        )}
+                        {formData[field.name] ? (
+                          <p className="text-xs text-emerald-500 font-medium truncate">
+                            Uploaded URL: {String(formData[field.name])}
+                          </p>
+                        ) : null}
+                      </div>
                     ) : (
                       <Input
                         id={field.name}

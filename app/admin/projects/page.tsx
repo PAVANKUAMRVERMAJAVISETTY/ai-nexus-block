@@ -11,6 +11,7 @@ const fields: AdminFormField[] = [
   { name: 'tags', label: 'Tags (comma-separated)', type: 'text', placeholder: 'nextjs, supabase, ai', full: true },
   { name: 'image_url', label: 'Cover Image URL', type: 'url', placeholder: 'https://...' },
   { name: 'live_url', label: 'Live Demo URL', type: 'url', placeholder: 'https://...' },
+  { name: 'zip_file_url', label: 'Upload Source (.zip)', type: 'file', uploadEndpoint: '/api/admin/projects/upload', accept: '.zip', full: true },
   { name: 'github_url', label: 'GitHub URL', type: 'url', placeholder: 'https://...' },
   { name: 'documentation_url', label: 'Documentation URL', type: 'url', placeholder: 'https://...' },
   { name: 'youtube_url', label: 'YouTube URL', type: 'url', placeholder: 'https://...' },

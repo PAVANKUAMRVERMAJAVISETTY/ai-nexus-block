@@ -5,4 +5,5 @@ export * from './tools';
 export * from './projects';
 export * from './knowledge';
 export * from './roadmaps';
+export * from './journey';
 export * from './extended';
