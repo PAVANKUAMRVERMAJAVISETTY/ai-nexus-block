@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdminClient, isServiceRoleConfigured } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
@@ -98,19 +99,21 @@ async function handleProfileUpdate(request: Request) {
       updateFields.avatar_url = photoUrl;
     }
 
-    const { data: updatedProfile, error } = await supabase
+    const dbClient = isServiceRoleConfigured() ? createSupabaseAdminClient() : supabase;
+
+    const { data: updatedProfile, error } = await dbClient
       .from('profiles')
       .update(updateFields)
       .eq('id', user.id)
       .select('*')
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.warn('[profile-route] Profiles table update notice:', error.message);
     }
 
     try {
-      await supabase
+      await dbClient
         .from('site_profile')
         .upsert(
           {

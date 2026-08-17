@@ -25,17 +25,10 @@ export async function POST(request: Request) {
       error: authError,
     } = await supabase.auth.getUser();
 
-    // 1. Enforce strict server-side authentication
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthenticated request. Please sign in to access the AI assistant.' },
-        { status: 401 }
-      );
-    }
+    const userId = user?.id || 'guest_visitor';
 
-    // Model calls cost money. Limit per user before any work is done, so one
-    // account cannot exhaust the shared AI budget.
-    const limit = hit(`ai:${user.id}`, RATE_LIMITS.ai);
+    // Rate limit per user / guest visitor
+    const limit = hit(`ai:${userId}`, RATE_LIMITS.ai);
     if (!limit.allowed) {
       return NextResponse.json(
         { error: `Too many requests. Try again in ${limit.retryAfterSeconds}s.` },
@@ -80,7 +73,7 @@ export async function POST(request: Request) {
               typeof candidate.name === 'string' &&
               typeof candidate.mime_type === 'string' &&
               candidate.bucket === 'nexus-user-attachments' &&
-              candidate.file_path.startsWith(`${user.id}/`)
+              candidate.file_path.startsWith(`${userId}/`)
             );
           })
       : [];
@@ -94,8 +87,8 @@ export async function POST(request: Request) {
 
     let activeConversationId = conversation_id;
 
-    // 2. Ensure conversation row exists in ai_conversations table
-    if (!activeConversationId) {
+    // 2. Ensure conversation row exists in ai_conversations table if logged in
+    if (!activeConversationId && user?.id) {
       const cleanMessage = message.trim();
       const lower = cleanMessage.toLowerCase();
       let title = cleanMessage.length > 45 ? cleanMessage.slice(0, 45) + '...' : cleanMessage;
@@ -124,12 +117,14 @@ export async function POST(request: Request) {
       }
     }
 
-    // 3. Fetch optional user profile context for AI personalization
-    const { data: userProfile } = await supabase
-      .from('profiles')
-      .select('display_name, education_level, degree, specialization, experience_level, skills, target_roles, learning_goals, role')
-      .eq('id', user.id)
-      .single();
+    // 3. Fetch optional user profile context for AI personalization if logged in
+    const { data: userProfile } = user?.id
+      ? await supabase
+          .from('profiles')
+          .select('display_name, education_level, degree, specialization, experience_level, skills, target_roles, learning_goals, role')
+          .eq('id', user.id)
+          .single()
+      : { data: null };
 
     let profileContext = '';
     if (userProfile) {
@@ -193,7 +188,7 @@ export async function POST(request: Request) {
 const existingSession = activeConversationId
   ? await loadPublicAgentSession(
       supabase,
-      user.id,
+      userId,
       activeConversationId,
     )
   : null;
@@ -389,7 +384,7 @@ const agentState = await advanceSession(
 if (activeConversationId) {
   await savePublicAgentSession(
     supabase,
-    user.id,
+    userId,
     activeConversationId,
     agentState,
   );

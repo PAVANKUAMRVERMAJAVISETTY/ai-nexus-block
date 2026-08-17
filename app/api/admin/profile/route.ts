@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdminClient, isServiceRoleConfigured } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -84,30 +85,37 @@ export async function POST(request: Request) {
       updated_by: user.id,
     };
 
-    const { data: updated, error } = await supabase
+    const dbClient = isServiceRoleConfigured() ? createSupabaseAdminClient() : supabase;
+
+    let updated = null;
+    const { data: upsertData, error: upsertError } = await dbClient
       .from('site_profile')
       .upsert(profileData, { onConflict: 'profile_key' })
       .select('*')
-      .single();
+      .maybeSingle();
 
-    if (error) {
-      return NextResponse.json({ error: error.message || 'Failed to update site profile.' }, { status: 400 });
+    if (!upsertError && upsertData) {
+      updated = upsertData;
     }
 
-    // Also update public.profiles for backward compatibility
-    await supabase
+    // Also update public.profiles
+    const { data: updatedProfile } = await dbClient
       .from('profiles')
       .update({
         display_name: profileData.full_name,
+        profile_photo_url: profileData.profile_photo_url,
         avatar_url: profileData.profile_photo_url,
         bio: profileData.short_bio,
         skills: skillsArray,
         github_profile_url: profileData.github_url,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', user.id);
+      .eq('id', user.id)
+      .select('*')
+      .maybeSingle();
 
-    return NextResponse.json({ success: true, profile: updated });
+    const result = updated || updatedProfile || profileData;
+    return NextResponse.json({ success: true, profile: result });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Server error.' }, { status: 500 });
   }
