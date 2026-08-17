@@ -9,6 +9,8 @@ import type { Tool } from '@/types/tools';
 
 const pricingFilters = ['#All', '#Free', '#Freemium', '#Paid'];
 
+const TOP_REPOS_SLUGS = ['openclaw', 'n8n', 'ollama', 'langflow', 'dify', 'langchain', 'open-webui', 'deepseek-v3', 'gemini-cli', 'ragflow', 'claude-code', 'crewai'];
+
 export default function ToolsPage() {
   const [tools, setTools] = useState<Tool[]>([]);
   const [activePricing, setActivePricing] = useState('#All');
@@ -29,12 +31,15 @@ export default function ToolsPage() {
     return pricingStr.toLowerCase() === cleanFilter;
   });
 
+  const topRepos = filteredTools.filter((t) => TOP_REPOS_SLUGS.includes(t.slug));
+  const otherTools = filteredTools.filter((t) => !TOP_REPOS_SLUGS.includes(t.slug));
+
   return (
     <PageContainer>
       <AdminWrapper entityType="tools">
         <PageHeader
-          title="AI Tools & Directory"
-          description="A curated catalog of AI and developer tools with educational breakdowns, pricing models, and step-by-step guides."
+          title="AI Tools & Ecosystem Directory"
+          description="Curated catalog of top AI GitHub repositories, LLMs, local AI agents, vector databases, and developer productivity tools used by Naga Pavan Kumar Javisetty."
         />
 
         {/* Pricing Filter Tabs & API Key Collection Link */}
@@ -64,19 +69,49 @@ export default function ToolsPage() {
           </a>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-8 space-y-12">
           {loading ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-pulse">
-              {[1, 2, 3].map((n) => (
+              {[1, 2, 3, 4, 5, 6].map((n) => (
                 <div key={n} className="h-48 rounded-xl bg-muted/40" />
               ))}
             </div>
           ) : filteredTools.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredTools.map((tool) => (
-                <ToolCard key={tool.id} tool={tool} />
-              ))}
-            </div>
+            <>
+              {/* Section 1: Top 12 AI GitHub Repositories */}
+              {topRepos.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
+                    <h2 className="text-lg font-bold text-foreground tracking-tight">
+                      Top 12 AI GitHub Repositories & Agent Frameworks
+                    </h2>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {topRepos.map((tool) => (
+                      <ToolCard key={tool.id} tool={tool} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Section 2: Core Stack & Developer Tools */}
+              {otherTools.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="h-2 w-2 rounded-full bg-blue-400"></span>
+                    <h2 className="text-lg font-bold text-foreground tracking-tight">
+                      Databases, Cloud & Agentic Foundations
+                    </h2>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {otherTools.map((tool) => (
+                      <ToolCard key={tool.id} tool={tool} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <EmptyState
               icon={<Wrench className="h-10 w-10" />}

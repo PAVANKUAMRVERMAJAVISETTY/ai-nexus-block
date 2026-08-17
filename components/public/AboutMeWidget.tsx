@@ -64,68 +64,63 @@ export function AboutMeWidget() {
     sessionStorage.setItem('nexus_about_popup_seen', 'true');
   };
 
+  const displayPhoto = profile?.profile_photo_url || '/naga-pavan-profile.jpg';
+
   return (
     <>
-      {/* 1. 5-Second Automated Introduction Popup */}
+      {/* 1. 5-Second Automated Introduction Centered Splash Popup */}
       {showAutoPopup && (
         <div
-          className="fixed top-20 right-6 z-50 max-w-sm w-full bg-card/95 border border-primary/30 rounded-xl p-5 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-300"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in zoom-in-95 duration-300"
           role="dialog"
           aria-label="Developer Introduction"
         >
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="relative h-12 w-12 rounded-full overflow-hidden border-2 border-primary/40 bg-muted flex items-center justify-center text-primary font-bold text-lg shrink-0">
-                {profile.profile_photo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={profile.profile_photo_url}
-                    alt={profile.full_name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <User className="h-6 w-6" />
-                )}
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground leading-tight flex items-center gap-1.5">
-                  {profile.full_name}
-                  <Sparkles className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
-                </h3>
-                <p className="text-xs text-primary font-medium">{profile.professional_title}</p>
-              </div>
-            </div>
+          <div className="bg-card border border-primary/40 rounded-2xl p-6 max-w-md w-full shadow-2xl relative text-center flex flex-col items-center">
             <button
               onClick={dismissAutoPopup}
-              className="text-muted-foreground hover:text-foreground p-1 rounded-md transition-colors"
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1.5 rounded-full hover:bg-muted transition-colors"
               aria-label="Dismiss intro"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </button>
-          </div>
 
-          <p className="mt-3 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-            {profile.short_bio}
-          </p>
-
-          {profile.skills && profile.skills.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1">
-              {profile.skills.slice(0, 4).map((skill, idx) => (
-                <span
-                  key={idx}
-                  className="px-2 py-0.5 text-[10px] font-medium bg-primary/10 text-primary border border-primary/20 rounded-md"
-                >
-                  {skill}
-                </span>
-              ))}
+            <div className="relative h-24 w-24 rounded-full overflow-hidden border-4 border-primary/50 bg-muted flex items-center justify-center text-primary font-bold text-2xl shrink-0 shadow-xl mb-4">
+              <img
+                src={displayPhoto}
+                alt={profile.full_name}
+                className="h-full w-full object-cover"
+              />
             </div>
-          )}
 
-          <div className="mt-4 flex items-center justify-between gap-2 pt-2 border-t border-border/50">
-            <span className="text-[10px] text-muted-foreground italic">Auto-dismisses in 5s</span>
-            <Button size="sm" variant="default" onClick={openFullModal} className="h-7 text-xs px-3">
-              View Profile
-            </Button>
+            <h3 className="text-xl font-bold text-foreground leading-tight flex items-center justify-center gap-2">
+              {profile.full_name}
+              <Sparkles className="h-5 w-5 text-amber-400 fill-amber-400" />
+            </h3>
+            <p className="text-sm text-primary font-semibold mt-1">{profile.professional_title}</p>
+
+            <p className="mt-3 text-xs text-muted-foreground leading-relaxed max-w-sm">
+              {profile.short_bio}
+            </p>
+
+            {profile.skills && profile.skills.length > 0 && (
+              <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+                {profile.skills.slice(0, 6).map((skill, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2.5 py-1 text-xs font-medium bg-primary/10 text-primary border border-primary/20 rounded-md"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-6 flex items-center justify-between w-full pt-3 border-t border-border/50">
+              <span className="text-[11px] text-muted-foreground italic">Moving to bottom-right in 5s...</span>
+              <Button size="sm" variant="default" onClick={openFullModal} className="text-xs px-4">
+                Full Profile →
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -147,16 +142,11 @@ export function AboutMeWidget() {
           ) : (
             <div className="bg-card/90 border border-border/80 rounded-xl p-3 shadow-xl backdrop-blur-md flex items-center gap-3 max-w-xs transition-all hover:border-primary/40 group">
               <div className="h-9 w-9 rounded-full overflow-hidden border border-primary/30 bg-muted flex items-center justify-center shrink-0">
-                {profile.profile_photo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={profile.profile_photo_url}
-                    alt={profile.full_name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <User className="h-4 w-4 text-primary" />
-                )}
+                <img
+                  src={displayPhoto}
+                  alt={profile.full_name}
+                  className="h-full w-full object-cover"
+                />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-foreground truncate">{profile.full_name}</p>
@@ -204,16 +194,11 @@ export function AboutMeWidget() {
 
             <div className="flex flex-col items-center text-center">
               <div className="h-20 w-20 rounded-full overflow-hidden border-2 border-primary/50 bg-muted flex items-center justify-center shadow-md mb-3">
-                {profile.profile_photo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={profile.profile_photo_url}
-                    alt={profile.full_name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <User className="h-10 w-10 text-primary" />
-                )}
+                <img
+                  src={displayPhoto}
+                  alt={profile.full_name}
+                  className="h-full w-full object-cover"
+                />
               </div>
 
               <h2 className="text-xl font-bold text-foreground">{profile.full_name}</h2>

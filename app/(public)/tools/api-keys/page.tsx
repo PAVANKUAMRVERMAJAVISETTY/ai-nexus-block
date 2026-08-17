@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PageContainer, PageHeader } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,8 @@ import {
   ExternalLink,
   Check,
   Copy,
+  Plus,
+  X,
   Sparkles,
   Layers,
   Wrench,
@@ -171,6 +173,61 @@ export default function ApiKeysPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('#All');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [customKeys, setCustomKeys] = useState<ApiKeyItem[]>([]);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const [newKeyForm, setNewKeyForm] = useState({
+    name: '',
+    category: 'AI Service',
+    usedFor: '',
+    usedInProjects: 'AI Nexus Block',
+    websiteUrl: 'https://',
+    pricingType: 'Freemium' as ApiKeyItem['pricingType'],
+    keyReferenceName: '',
+  });
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('nexus_custom_api_keys');
+      if (saved) {
+        setCustomKeys(JSON.parse(saved));
+      }
+    } catch {}
+  }, []);
+
+  const handleAddCustomKey = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newKeyForm.name.trim() || !newKeyForm.keyReferenceName.trim()) return;
+
+    const newItem: ApiKeyItem = {
+      id: 'custom-' + Date.now(),
+      name: newKeyForm.name.trim(),
+      category: newKeyForm.category.trim() || 'AI Service',
+      usedFor: newKeyForm.usedFor.trim() || 'Custom API Key Integration',
+      usedInProjects: newKeyForm.usedInProjects.split(',').map((p) => p.trim()).filter(Boolean),
+      websiteUrl: newKeyForm.websiteUrl.trim() || 'https://',
+      pricingType: newKeyForm.pricingType,
+      badgeColor: newKeyForm.pricingType === 'Paid' ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+      keyReferenceName: newKeyForm.keyReferenceName.trim().toUpperCase(),
+    };
+
+    const updated = [newItem, ...customKeys];
+    setCustomKeys(updated);
+    try {
+      localStorage.setItem('nexus_custom_api_keys', JSON.stringify(updated));
+    } catch {}
+
+    setIsAddModalOpen(false);
+    setNewKeyForm({
+      name: '',
+      category: 'AI Service',
+      usedFor: '',
+      usedInProjects: 'AI Nexus Block',
+      websiteUrl: 'https://',
+      pricingType: 'Freemium',
+      keyReferenceName: '',
+    });
+  };
 
   const handleCopyKeyRef = (keyRef: string, id: string) => {
     navigator.clipboard.writeText(keyRef);
@@ -178,7 +235,9 @@ export default function ApiKeysPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const filteredKeys = API_KEYS_DATA.filter((item) => {
+  const allKeys = [...customKeys, ...API_KEYS_DATA];
+
+  const filteredKeys = allKeys.filter((item) => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -201,20 +260,31 @@ export default function ApiKeysPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="API Key Collection & Integrations"
+        title="API Key Collection & Backup Vault"
         description="Structured catalog of 12+ API keys, cloud integrations, and custom algorithmic engines powering Naga Pavan Kumar Javisetty's production platforms."
       />
 
-      {/* Top Controls: Search Bar & Pricing Filters */}
+      {/* Top Controls: Search Bar, Add Button & Pricing Filters */}
       <div className="mt-8 flex flex-col sm:flex-row gap-4 items-center justify-between border-b border-border/40 pb-6">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search API keys, features, or projects..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-card/50 text-sm"
-          />
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search API keys or projects..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-card/50 text-sm"
+            />
+          </div>
+
+          <Button
+            onClick={() => setIsAddModalOpen(true)}
+            size="sm"
+            className="gap-1.5 font-bold shadow-md bg-emerald-600 hover:bg-emerald-500 text-white shrink-0"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add API Key</span>
+          </Button>
         </div>
 
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
@@ -337,6 +407,108 @@ export default function ApiKeysPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Add Custom API Key Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+              <div className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-emerald-400" />
+                <h3 className="font-bold text-lg text-foreground">Add Custom API Key Backup</h3>
+              </div>
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-muted-foreground hover:text-foreground p-1 rounded-md"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddCustomKey} className="space-y-4 text-xs">
+              <div>
+                <label className="font-semibold block mb-1">API Service Name *</label>
+                <Input
+                  placeholder="e.g. OpenAI GPT-4o API"
+                  value={newKeyForm.name}
+                  onChange={(e) => setNewKeyForm({ ...newKeyForm, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold block mb-1">Category</label>
+                  <Input
+                    placeholder="e.g. LLM Inference"
+                    value={newKeyForm.category}
+                    onChange={(e) => setNewKeyForm({ ...newKeyForm, category: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold block mb-1">Pricing Type</label>
+                  <select
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                    value={newKeyForm.pricingType}
+                    onChange={(e) => setNewKeyForm({ ...newKeyForm, pricingType: e.target.value as any })}
+                  >
+                    <option value="Free">Free</option>
+                    <option value="Freemium">Freemium</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Open Source">Open Source</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold block mb-1">Key Reference / Secret Name *</label>
+                <Input
+                  placeholder="e.g. OPENAI_API_KEY or sk-proj-..."
+                  value={newKeyForm.keyReferenceName}
+                  onChange={(e) => setNewKeyForm({ ...newKeyForm, keyReferenceName: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold block mb-1">Used For / Features</label>
+                <Input
+                  placeholder="e.g. Code generation, automated testing, RAG embeddings"
+                  value={newKeyForm.usedFor}
+                  onChange={(e) => setNewKeyForm({ ...newKeyForm, usedFor: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold block mb-1">Utilized In Projects (comma separated)</label>
+                <Input
+                  placeholder="e.g. AI Nexus Block, Urban Properties"
+                  value={newKeyForm.usedInProjects}
+                  onChange={(e) => setNewKeyForm({ ...newKeyForm, usedInProjects: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold block mb-1">Official Website URL</label>
+                <Input
+                  placeholder="https://platform.openai.com"
+                  value={newKeyForm.websiteUrl}
+                  onChange={(e) => setNewKeyForm({ ...newKeyForm, websiteUrl: e.target.value })}
+                />
+              </div>
+
+              <div className="pt-3 flex justify-end gap-2 border-t border-border">
+                <Button type="button" variant="outline" size="sm" onClick={() => setIsAddModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
+                  Save to Vault
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 }
