@@ -26,6 +26,61 @@ async function checkSuperAdmin(supabase: any) {
   return { isAuthorized: true, user, status: 200 };
 }
 
+const DEFAULT_KNOWLEDGE = [
+  {
+    id: 'know_1',
+    title: 'Mastering Supabase Row Level Security (RLS) & Security Definer Functions',
+    slug: 'mastering-supabase-rls-security-definer',
+    excerpt: 'Comprehensive architecture guide for hardening multi-role database applications in PostgreSQL using auth.uid() and SECURITY DEFINER helpers.',
+    content: 'Row Level Security (RLS) is PostgreSQL\'s native authorization model. By executing security policies directly inside the database kernel, unauthorized rows are stripped before reaching API layers. SECURITY DEFINER functions run with creator privileges, bypassing infinite recursion loops when inspecting user roles during query execution.',
+    category: 'Supabase & RLS',
+    tags: ['Supabase', 'PostgreSQL', 'RLS', 'Security', 'Database Design'],
+    metadata: { reading_time_minutes: 8, is_pinned: true },
+    featured: true,
+    status: 'published',
+    created_at: '2026-02-01T00:00:00Z',
+  },
+  {
+    id: 'know_2',
+    title: 'Next.js 15 App Router: Data Cache Invalidation & Instant CMS Revalidation',
+    slug: 'nextjs-15-app-router-data-cache-revalidation',
+    excerpt: 'Deep dive into revalidatePath() and revalidateTag() patterns for instant CMS updates and server-side data synchronization.',
+    content: 'Next.js App Router caches fetch requests and full route renders. When administrative updates occur, revalidatePath() programmatically purges specific cache keys. This ensures zero downtime and instant rendering of updated content across edge networks.',
+    category: 'Next.js App Router',
+    tags: ['Next.js', 'App Router', 'Caching', 'revalidatePath', 'React 19'],
+    metadata: { reading_time_minutes: 6, is_pinned: true },
+    featured: true,
+    status: 'published',
+    created_at: '2026-02-05T00:00:00Z',
+  },
+  {
+    id: 'know_3',
+    title: 'Production Algorithms: Haversine Geolocation & Zero-Dependency PKZip Encoding',
+    slug: 'production-algorithms-haversine-pkzip-archiver',
+    excerpt: 'Engineering custom mathematical & binary algorithms in TypeScript: great-circle spherical distance and Uint8Array ZIP archive generation.',
+    content: 'Building production applications requires lightweight algorithmic engines. The Haversine formula calculates spherical distance between latitude/longitude pairs to route inquiries to micro-market territory agents. The PKZip archiver writes raw store-mode ZIP package headers and CRC-32 checksums directly in browser memory using Uint8Array.',
+    category: 'Algorithms',
+    tags: ['Haversine', 'PKZip', 'Algorithms', 'TypeScript', 'Binary Processing'],
+    metadata: { reading_time_minutes: 10, is_pinned: true },
+    featured: true,
+    status: 'published',
+    created_at: '2026-02-10T00:00:00Z',
+  },
+  {
+    id: 'know_4',
+    title: 'AI Agentic Engineering: Multi-Provider LLM Fallback Cascade & Copilot Context',
+    slug: 'ai-agentic-engineering-llm-cascade-fallback',
+    excerpt: 'Architecting resilient AI workflows with Cursor, Claude Code, Cline, and Roo Code using OpenRouter and Gemini API multi-LLM fallbacks.',
+    content: 'Autonomous AI coding tools rely on precise context orchestration. By combining prompt engineering (.cursorrules, AGENTS.md) with an 11-provider AI cascade fallback mechanism, developers eliminate API downtime and achieve deterministic code generation.',
+    category: 'AI Frameworks',
+    tags: ['AI Workflows', 'Claude Code', 'Cursor', 'Cline', 'Roo Code', 'Gemini API'],
+    metadata: { reading_time_minutes: 7, is_pinned: true },
+    featured: true,
+    status: 'published',
+    created_at: '2026-02-15T00:00:00Z',
+  },
+];
+
 export async function GET(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
@@ -60,13 +115,21 @@ export async function GET(request: Request) {
 
     const { data, error } = await (id || slug ? query.maybeSingle() : query.order('featured', { ascending: false }).order('title'));
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error || !data || (Array.isArray(data) && data.length === 0)) {
+      if (id) {
+        const item = DEFAULT_KNOWLEDGE.find((k) => k.id === id);
+        return NextResponse.json({ data: item || null });
+      }
+      if (slug) {
+        const item = DEFAULT_KNOWLEDGE.find((k) => k.slug === slug);
+        return NextResponse.json({ data: item || null });
+      }
+      return NextResponse.json({ data: DEFAULT_KNOWLEDGE });
     }
 
-    return NextResponse.json({ data: data || (id || slug ? null : []) });
+    return NextResponse.json({ data });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ data: DEFAULT_KNOWLEDGE });
   }
 }
 

@@ -11,17 +11,17 @@ import { useAuth } from '@/features/auth/hooks/use-auth';
 import { AdminWrapper, AdminEditButton } from '@/components/admin';
 import { CoreCompetencies } from '@/components/home/CoreCompetencies';
 import { PlatformGateways } from '@/components/home/PlatformGateways';
-import { Bot, Sparkles, ArrowRight } from 'lucide-react';
+import { Bot, Sparkles, ArrowRight, FileText } from 'lucide-react';
 
 export default function Home() {
   const { user, isSuperAdmin } = useAuth();
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const [profileData, setProfileData] = useState({
-    name: 'Javisetty Naga Pavan Kumar',
-    title: 'AI Full Stack Developer & Systems Architect',
+    name: 'Naga Pavan Kumar Javisetty',
+    title: 'AI-Focused Full-Stack Developer & Systems Architect',
     bio: 'Building autonomous agentic platforms, production-ready Next.js applications, and high-performance cloud databases with Supabase RLS policies.',
-    photo_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop',
+    photo_url: '/naga-pavan-profile.jpg',
     status: '🟢 Available for Architecture & AI Consulting',
   });
 
@@ -114,11 +114,11 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-2">
-                  <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl text-foreground leading-tight">
+                  <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-tight sm:whitespace-nowrap">
                     {profileData.name}
                   </h1>
 
-                  <p className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary via-blue-500 to-cyan-400 bg-clip-text text-transparent">
+                  <p className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-primary via-blue-500 to-cyan-400 bg-clip-text text-transparent sm:whitespace-nowrap">
                     {profileData.title}
                   </p>
                 </div>
@@ -141,6 +141,13 @@ export default function Home() {
 
                   <Button asChild variant="outline" size="lg" className="text-base px-6 border-border/80 hover:bg-muted">
                     <Link href="/projects">Explore Projects Showcase</Link>
+                  </Button>
+
+                  <Button asChild variant="secondary" size="lg" className="gap-2 text-base px-6 border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 shadow-sm">
+                    <a href="/Naga_Pavan_Kumar_Javisetty_Resume.pdf" download target="_blank" rel="noopener noreferrer">
+                      <FileText className="h-5 w-5" />
+                      Download Resume (PDF)
+                    </a>
                   </Button>
 
                   {/* Super Admin Edit Hero Button */}

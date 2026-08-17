@@ -14,16 +14,16 @@ export default function AdminProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    full_name: 'Naga Pavan Kumar',
-    professional_title: 'AI Full Stack Developer & Systems Architect',
-    profile_photo_url: '',
-    short_bio: 'Building intelligent developer tools, agentic workflows, and knowledge systems.',
-    full_bio: 'Passionate software engineer specializing in autonomous agent architectures, multi-tenant developer sandboxes, Next.js, TypeScript, and Supabase cloud platforms.',
-    skills: 'TypeScript, Next.js, React, Node.js, Python, Supabase, Tailwind CSS, Docker',
-    github_url: 'https://github.com',
+    full_name: 'Naga Pavan Kumar Javisetty',
+    professional_title: 'AI-Focused Full-Stack Developer & Systems Architect',
+    profile_photo_url: '/naga-pavan-profile.jpg',
+    short_bio: 'Building autonomous agentic platforms, production-ready Next.js applications, and high-performance cloud databases with Supabase RLS policies.',
+    full_bio: 'AI-focused Full-Stack Developer with a B.Tech in CSE and extensive hands-on experience building production-ready, enterprise-grade web applications, real-time marketplaces, and ERP systems using React 19, Next.js, TypeScript, Supabase, PostgreSQL, and RLS security.',
+    skills: 'React 19, Next.js, TypeScript, Supabase, PostgreSQL, RLS Security, TanStack Router/Start, Tailwind CSS, Razorpay API, PKZip Archiver, Haversine Algorithm, AI Workflows (Cline, Roo Code, Cursor, OpenRouter)',
+    github_url: 'https://github.com/PAVANKUAMRVERMAJAVISETTY',
     linkedin_url: 'https://linkedin.com',
-    website_url: 'https://ainexusblock.com',
-    resume_url: '',
+    website_url: 'https://ai-nexus-block.vercel.app/',
+    resume_url: '/Naga_Pavan_Kumar_Javisetty_Resume.pdf',
     is_public: true,
   });
 

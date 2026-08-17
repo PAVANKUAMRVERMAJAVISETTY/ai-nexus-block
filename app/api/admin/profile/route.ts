@@ -69,8 +69,8 @@ export async function POST(request: Request) {
 
     const profileData = {
       profile_key: 'owner',
-      full_name: body.full_name || body.name || 'Naga Pavan Kumar',
-      professional_title: body.professional_title || body.role || 'AI Full Stack Developer & Systems Architect',
+      full_name: body.full_name || body.name || 'Naga Pavan Kumar Javisetty',
+      professional_title: body.professional_title || body.role || 'AI-Focused Full-Stack Developer & Systems Architect',
       profile_photo_url: body.profile_photo_url || body.avatar_url || null,
       short_bio: body.short_bio || '',
       full_bio: body.full_bio || body.bio || '',

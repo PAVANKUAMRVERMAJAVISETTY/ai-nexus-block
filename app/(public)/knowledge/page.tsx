@@ -17,14 +17,24 @@ const knowledgeCategories = [
 
 const sampleQandAs = [
   {
-    q: 'How does Supabase Row Level Security (RLS) enforce authorization?',
-    a: 'Supabase RLS policies are evaluated directly inside PostgreSQL using auth.uid() or security definer helper functions (such as public.is_super_admin()). Non-admin queries are filtered at the database engine level before returning data to the client.',
-    code: `CREATE POLICY "super_admin_all" ON public.nexus_projects\nFOR ALL TO authenticated\nUSING (public.is_super_admin())\nWITH CHECK (public.is_super_admin());`,
+    q: 'How does Supabase Row Level Security (RLS) enforce database authorization?',
+    a: 'Supabase RLS policies execute directly inside the PostgreSQL kernel for every SELECT, INSERT, UPDATE, and DELETE query using auth.uid() or security definer helper functions (such as public.is_super_admin()). Unauthorized rows are stripped at the database engine layer before ever reaching application memory.',
+    code: `CREATE OR REPLACE FUNCTION public.is_super_admin()\nRETURNS BOOLEAN AS $$\nBEGIN\n  RETURN EXISTS (\n    SELECT 1 FROM public.profiles\n    WHERE id = auth.uid() AND role = 'super_admin'\n  );\nEND;\n$$ LANGUAGE plpgsql SECURITY DEFINER;\n\nCREATE POLICY "super_admin_all" ON public.nexus_projects\nFOR ALL TO authenticated\nUSING (public.is_super_admin())\nWITH CHECK (public.is_super_admin());`,
   },
   {
-    q: 'How does Next.js revalidatePath() handle instant CMS updates?',
-    a: 'In Next.js App Router, revalidatePath("/projects") purges the Data Cache and Full Route Cache for the specified path, ensuring subsequent server renders fetch fresh dynamic content instantly.',
-    code: `import { revalidatePath } from 'next/cache';\n\nawait db.insert(newProject);\nrevalidatePath('/projects');\nrevalidatePath('/');`,
+    q: 'How does Next.js App Router revalidatePath() purge Data Cache for instant CMS updates?',
+    a: 'In Next.js App Router server actions or API routes, calling revalidatePath("/projects") programmatically invalidates the Data Cache and Full Route Cache for the target route without restarting the server or requiring client-side page reloads.',
+    code: `import { revalidatePath } from 'next/cache';\nimport { createSupabaseServerClient } from '@/lib/supabase/server';\n\nexport async function PUT(req: Request) {\n  const supabase = await createSupabaseServerClient();\n  const body = await req.json();\n  await supabase.from('nexus_projects').update(body).eq('id', body.id);\n  \n  revalidatePath('/projects');\n  revalidatePath('/projects/' + body.slug);\n  revalidatePath('/');\n  return NextResponse.json({ success: true });\n}`,
+  },
+  {
+    q: 'How are Haversine Geolocation Routing and zero-dependency PKZip Archiving implemented?',
+    a: 'Haversine calculates great-circle distance between spherical coordinates to instantly route property inquiries to territory agents. The PKZip archiver constructs raw ZIP binary archives directly in browser memory using Uint8Array headers and CRC-32 checksum computation.',
+    code: `// Haversine Spherical Distance Formula\nexport function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {\n  const R = 6371; // Earth radius in km\n  const dLat = (lat2 - lat1) * Math.PI / 180;\n  const dLon = (lon2 - lon1) * Math.PI / 180;\n  const a = Math.sin(dLat/2) * Math.sin(dLat/2) + \n            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * \n            Math.sin(dLon/2) * Math.sin(dLon/2);\n  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));\n}`,
+  },
+  {
+    q: 'How do AI agentic coding tools (Cursor, Claude Code, Cline, Roo Code) integrate with system rules?',
+    a: 'Agentic engineering tools leverage structured repository prompt files (.cursorrules, AGENTS.md, system prompts) combined with multi-provider LLM cascade fallbacks (OpenRouter / Gemini) to autonomously read context, draft implementations, and verify code correctness.',
+    code: `// Multi-LLM Provider Cascade Fallback Handler\nexport async function executeAICascade(prompt: string, providers = ['gemini', 'anthropic', 'openrouter']) {\n  for (const provider of providers) {\n    try {\n      const response = await callProviderAPI(provider, prompt);\n      if (response?.content) return response;\n    } catch (err) {\n      console.warn(\`Provider \${provider} failed, trying next...\`);\n    }\n  }\n  throw new Error('All AI cascade providers failed.');\n}`,
   },
 ];
 

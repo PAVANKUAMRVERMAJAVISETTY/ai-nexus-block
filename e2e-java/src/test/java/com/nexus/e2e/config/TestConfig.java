@@ -3,6 +3,7 @@ package com.nexus.e2e.config;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 
 public class TestConfig {
@@ -51,7 +52,7 @@ public class TestConfig {
 
     public static boolean isServerReachable() {
         try {
-            URL url = new URL(getBaseUrl() + "/api/health");
+            URL url = URI.create(getBaseUrl() + "/api/health").toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setConnectTimeout(1000);
             conn.setReadTimeout(1000);

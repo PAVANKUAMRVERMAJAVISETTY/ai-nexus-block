@@ -37,6 +37,10 @@ public class AssistantPage extends BasePage {
         return isDisplayed(ttsButton);
     }
 
+    public boolean isModeSelectorVisible() {
+        return isDisplayed(modeSelectorButtons);
+    }
+
     public void sendMessage(String text) {
         sendKeys(composerInput, text);
         click(sendButton);

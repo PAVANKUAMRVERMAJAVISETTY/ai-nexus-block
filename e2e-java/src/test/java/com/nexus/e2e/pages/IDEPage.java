@@ -30,6 +30,14 @@ public class IDEPage extends BasePage {
         return isDisplayed(exportButton);
     }
 
+    public boolean isFileTreeVisible() {
+        return isDisplayed(fileTreeContainer);
+    }
+
+    public boolean isPendingActionsPanelVisible() {
+        return isDisplayed(pendingActionsPanel);
+    }
+
     public void clickExportButton() {
         click(exportButton);
     }

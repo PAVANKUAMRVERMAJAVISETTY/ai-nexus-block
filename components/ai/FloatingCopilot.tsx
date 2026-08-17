@@ -31,10 +31,10 @@ interface ChatMessage {
 }
 
 const recruiterPromptChips = [
-  'Ask about system design',
-  'Explain RLS security',
-  'Why Next.js App Router?',
-  'Explain multi-LLM cascade fallback',
+  '5 Live Production Platforms',
+  'Explain RLS Security & Supabase',
+  'Haversine & PKZip Algorithms',
+  'AI Agentic Engineering (Cursor/Claude)',
 ];
 
 export function FloatingCopilot() {
@@ -93,7 +93,7 @@ export function FloatingCopilot() {
         {
           id: 'welcome_interview',
           role: 'assistant',
-          content: `🎯 **Interview AI Twin Mode Activated**\n\nI am the digital AI Twin for **Javisetty Naga Pavan Kumar**.\n\nAsk me about my architectural philosophy, Next.js App Router experience, PostgreSQL RLS security, or 11-provider AI cascade design!`,
+          content: `🎯 **Interview AI Twin Mode Activated**\n\nI am the digital AI Twin for **Naga Pavan Kumar Javisetty** (AI-Focused Full-Stack Developer & Systems Architect).\n\nAsk me about my 5 live production platforms, Next.js App Router & React 19 expertise, Supabase PostgreSQL RLS security, custom algorithms (Haversine & PKZip), or AI agentic engineering workflows!`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ];

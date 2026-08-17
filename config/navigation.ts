@@ -11,6 +11,7 @@ export interface NavItem {
 export const publicNav: NavItem[] = [
   { label: 'Projects', href: '/projects', description: 'Featured work and case studies' },
   { label: 'Tools', href: '/tools', description: 'AI and developer tool catalog' },
+  { label: 'API Keys', href: '/tools/api-keys', description: 'API Key Collection & 12+ Integrations' },
   { label: 'Knowledge', href: '/knowledge', description: 'Articles and guides' },
   { label: 'Roadmaps', href: '/roadmaps', description: 'Engineering learning paths' },
   { label: 'Resources', href: '/resources', description: 'Curated resources' },

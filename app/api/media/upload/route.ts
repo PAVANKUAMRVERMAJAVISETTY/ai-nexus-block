@@ -52,12 +52,14 @@ export async function POST(request: Request) {
     let bucketName = requestedBucket;
     if (!bucketName) {
       if (
-        ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(ext) ||
+        ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'ico'].includes(ext) ||
         mimeType.startsWith('image/')
       ) {
         bucketName = 'portfolio-media';
+      } else if (['pdf', 'doc', 'docx', 'txt', 'sql', 'zip'].includes(ext) || mimeType.includes('pdf') || mimeType.includes('document')) {
+        bucketName = 'portfolio-documents';
       } else {
-        bucketName = 'public-downloads';
+        bucketName = 'portfolio-media';
       }
     }
 

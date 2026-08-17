@@ -4,40 +4,56 @@ import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
+const DEFAULT_PROFILE = {
+  id: 'owner',
+  full_name: 'Naga Pavan Kumar Javisetty',
+  display_name: 'Naga Pavan Kumar Javisetty',
+  name: 'Naga Pavan Kumar Javisetty',
+  professional_title: 'AI-Focused Full-Stack Developer & Systems Architect',
+  headline: 'AI-Focused Full-Stack Developer & Systems Architect',
+  title: 'AI-Focused Full-Stack Developer & Systems Architect',
+  bio: 'Building autonomous agentic platforms, production-ready Next.js applications, and high-performance cloud databases with Supabase RLS policies.',
+  short_bio: 'Building autonomous agentic platforms, production-ready Next.js applications, and high-performance cloud databases with Supabase RLS policies.',
+  full_bio: 'AI-focused Full-Stack Developer with a B.Tech in CSE and extensive hands-on experience building production-ready, enterprise-grade web applications, real-time marketplaces, and ERP systems using React 19, Next.js, TypeScript, Supabase, PostgreSQL, and RLS security.',
+  profile_photo_url: '/naga-pavan-profile.jpg',
+  avatar_url: '/naga-pavan-profile.jpg',
+  image_url: '/naga-pavan-profile.jpg',
+  photo_url: '/naga-pavan-profile.jpg',
+  resume_url: '/Naga_Pavan_Kumar_Javisetty_Resume.pdf',
+  status: '🟢 Available for Architecture & AI Consulting',
+};
+
 export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
     const {
       data: { user },
-      error: authError,
     } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthenticated request.' },
-        { status: 401 }
-      );
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profile) {
+        const merged = {
+          ...DEFAULT_PROFILE,
+          ...profile,
+          display_name: profile.display_name || profile.full_name || DEFAULT_PROFILE.display_name,
+          headline: profile.headline || profile.professional_title || DEFAULT_PROFILE.headline,
+          bio: profile.bio || DEFAULT_PROFILE.bio,
+          profile_photo_url: profile.profile_photo_url || profile.avatar_url || DEFAULT_PROFILE.profile_photo_url,
+          avatar_url: profile.avatar_url || profile.profile_photo_url || DEFAULT_PROFILE.avatar_url,
+        };
+        return NextResponse.json({ success: true, profile: merged, data: merged }, { status: 200 });
+      }
     }
 
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (error) {
-      return NextResponse.json(
-        { success: false, error: 'Profile not found.' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ success: true, profile, data: profile }, { status: 200 });
+    return NextResponse.json({ success: true, profile: DEFAULT_PROFILE, data: DEFAULT_PROFILE }, { status: 200 });
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: error.message || 'Internal server error.' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: true, profile: DEFAULT_PROFILE, data: DEFAULT_PROFILE }, { status: 200 });
   }
 }
 

@@ -37,21 +37,31 @@ export default function ToolsPage() {
           description="A curated catalog of AI and developer tools with educational breakdowns, pricing models, and step-by-step guides."
         />
 
-        {/* Pricing Filter Tabs */}
-        <div className="mt-6 flex flex-wrap gap-2 border-b border-border/40 pb-4">
-          {pricingFilters.map((pFilter) => (
-            <button
-              key={pFilter}
-              onClick={() => setActivePricing(pFilter)}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-full border transition-all ${
-                activePricing === pFilter
-                  ? 'bg-primary text-primary-foreground border-primary shadow-md'
-                  : 'bg-muted/30 text-muted-foreground hover:bg-muted border-border/50'
-              }`}
-            >
-              {pFilter}
-            </button>
-          ))}
+        {/* Pricing Filter Tabs & API Key Collection Link */}
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-b border-border/40 pb-4">
+          <div className="flex flex-wrap gap-2">
+            {pricingFilters.map((pFilter) => (
+              <button
+                key={pFilter}
+                onClick={() => setActivePricing(pFilter)}
+                className={`px-4 py-1.5 text-xs font-semibold rounded-full border transition-all ${
+                  activePricing === pFilter
+                    ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                    : 'bg-muted/30 text-muted-foreground hover:bg-muted border-border/50'
+                }`}
+              >
+                {pFilter}
+              </button>
+            ))}
+          </div>
+
+          <a
+            href="/tools/api-keys"
+            className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-xs font-bold text-primary hover:bg-primary/20 transition-all shadow-sm"
+          >
+            <Wrench className="h-3.5 w-3.5" />
+            <span>View API Key Collection (12+ Integrations) →</span>
+          </a>
         </div>
 
         <div className="mt-8">
